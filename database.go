@@ -52,6 +52,23 @@ func (d *Database) Do(query string, bindVars map[string]interface{}) error {
 	return nil
 }
 
+// DoRun is to run data modification query with bind parameters
+// that is expected to return a result
+func (d *Database) DoRun(query string, bindVars map[string]interface{}) (*Result, error) {
+	// validate
+	if err := d.dbh.ValidateQuery(context.Background(), query); err != nil {
+		return &Result{empty: true}, fmt.Errorf("error in validating the query %s", err)
+	}
+	c, err := d.dbh.Query(context.Background(), query, bindVars)
+	if err != nil {
+		if driver.IsNotFound(err) {
+			return &Result{empty: true}, nil
+		}
+		return &Result{empty: true}, fmt.Errorf("error in data modification query %s", err)
+	}
+	return &Result{cursor: c}, nil
+}
+
 // Run is to run data modification query that is expected to return a result
 // It is a convenient alias for Get method
 func (d *Database) Run(query string) (*Result, error) {
