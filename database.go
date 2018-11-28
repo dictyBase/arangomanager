@@ -12,6 +12,24 @@ type Database struct {
 	dbh driver.Database
 }
 
+// DoSearch query the database with bind parameters that is expected to return
+// multiple rows of result
+func (d *Database) SearchRows(query string, bindVars map[string]interface{}) (*Resultset, error) {
+	// validate
+	if err := d.dbh.ValidateQuery(context.Background(), query); err != nil {
+		return &Resultset{empty: true}, fmt.Errorf("error in validating the query %s", err)
+	}
+	ctx := context.Background()
+	c, err := d.dbh.Query(ctx, query, bindVars)
+	if err != nil {
+		if driver.IsNotFound(err) {
+			return &Resultset{empty: true}, nil
+		}
+		return &Resultset{empty: true}, fmt.Errorf("error in doing query %s", err)
+	}
+	return &Resultset{cursor: c, ctx: ctx}, nil
+}
+
 // Search query the database that is expected to return multiple rows of result
 func (d *Database) Search(query string) (*Resultset, error) {
 	// validate
