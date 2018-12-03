@@ -7,6 +7,7 @@ import (
 
 	driver "github.com/arangodb/go-driver"
 	"github.com/arangodb/go-driver/http"
+	validator "gopkg.in/go-playground/validator.v9"
 )
 
 // Session is a connected database client
@@ -51,6 +52,32 @@ func Connect(host, user, password string, port int, istls bool) (*Session, error
 		return &Session{}, fmt.Errorf("could not get a client instance %s", err)
 	}
 	return &Session{client}, nil
+}
+
+// NewSessionDb connects to arangodb and returns a new session
+// and database instances
+func NewSessionDb(connP *ConnectParams) (*Session, *Database, error) {
+	var sess *Session
+	var db *Database
+	validate := validator.New()
+	if err := validate.Struct(connP); err != nil {
+		return sess, db, err
+	}
+	sess, err := Connect(
+		connP.Host,
+		connP.User,
+		connP.Pass,
+		connP.Port,
+		connP.Istls,
+	)
+	if err != nil {
+		return sess, db, err
+	}
+	db, err = sess.DB(connP.Database)
+	if err != nil {
+		return sess, db, err
+	}
+	return sess, db, nil
 }
 
 // CurrentDB gets the default database(_system)
