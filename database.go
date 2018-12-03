@@ -147,6 +147,21 @@ func (d *Database) CreateCollection(name string, opt *driver.CreateCollectionOpt
 	return d.dbh.CreateCollection(nil, name, opt)
 }
 
+// FindOrCreateCollection finds or creates a collection in the database. The
+// method is expected to be called by the user who has privileges to create the
+// collection
+func (d *Database) FindOrCreateCollection(name string, opt *driver.CreateCollectionOptions) (driver.Collection, error) {
+	var c driver.Collection
+	ok, err := d.dbh.CollectionExists(context.Background(), name)
+	if err != nil {
+		return c, fmt.Errorf("unable to check for collection %s", name)
+	}
+	if ok {
+		return d.dbh.Collection(context.Background(), name)
+	}
+	return d.dbh.CreateCollection(nil, name, opt)
+}
+
 // FindOrCreateGraph finds or creates a named graph in the database
 func (d *Database) FindOrCreateGraph(name string, defs []driver.EdgeDefinition) (driver.Graph, error) {
 	var g driver.Graph
