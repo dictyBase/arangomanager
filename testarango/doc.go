@@ -56,7 +56,7 @@ Usage
 						log.Fatal(err)
 					}
 					dbh.Drop()
-				}
+				}()
 				code := m.Run()
 				os.Exit(code)
 			}
