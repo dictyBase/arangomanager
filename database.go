@@ -96,6 +96,9 @@ func (d *Database) DoRun(query string, bindVars map[string]interface{}) (*Result
 		}
 		return &Result{empty: true}, fmt.Errorf("error in data modification query %s", err)
 	}
+	if !c.HasMore() {
+		return &Result{empty: true}, driver.NoMoreDocumentsError{}
+	}
 	return &Result{cursor: c}, nil
 }
 
@@ -118,6 +121,9 @@ func (d *Database) GetRow(query string, bindVars map[string]interface{}) (*Resul
 		}
 		return &Result{empty: true}, fmt.Errorf("error in get query %s", err)
 	}
+	if !c.HasMore() {
+		return &Result{empty: true}, driver.NoMoreDocumentsError{}
+	}
 	return &Result{cursor: c}, nil
 }
 
@@ -133,6 +139,9 @@ func (d *Database) Get(query string) (*Result, error) {
 			return &Result{empty: true}, nil
 		}
 		return &Result{empty: true}, fmt.Errorf("error in get query %s", err)
+	}
+	if !c.HasMore() {
+		return &Result{empty: true}, driver.NoMoreDocumentsError{}
 	}
 	return &Result{cursor: c}, nil
 }
