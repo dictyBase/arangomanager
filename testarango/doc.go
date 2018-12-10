@@ -49,15 +49,9 @@ Usage
 				if err != nil {
 					log.Fatal(err)
 				}
-				// clean up the database at the end
-				defer func() {
-					dbh, err := ta.DB(ta.Database)
-					if err != nil {
-						log.Fatal(err)
-					}
-					dbh.Drop()
-				}()
 				code := m.Run()
+				// clean up the database at the end
+				dbh.Drop()
 				os.Exit(code)
 			}
 
