@@ -47,6 +47,20 @@ func (d *Database) Search(query string) (*Resultset, error) {
 	return &Resultset{cursor: c, ctx: ctx}, nil
 }
 
+// CountWithParams query the database with bind parameters that is expected to
+// return count of result
+func (d *Database) CountWithParams(query string, bindVars map[string]interface{}) (int64, error) {
+	// validate
+	if err := d.dbh.ValidateQuery(context.Background(), query); err != nil {
+		return 0, fmt.Errorf("error in validating the query %s", err)
+	}
+	c, err := d.dbh.Query(driver.WithQueryCount(context.Background(), true), query, bindVars)
+	if err != nil {
+		return 0, err
+	}
+	return c.Count(), nil
+}
+
 // Count query the database that is expected to return count of result
 func (d *Database) Count(query string) (int64, error) {
 	// validate
