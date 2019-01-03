@@ -11,11 +11,6 @@ import (
 	"github.com/jinzhu/now"
 )
 
-/**
-* TO DO:
-* 1) Return FILTER statement all in one line without redundant FILTER commands
- */
-
 // regex to capture all variations of filter string
 var qre = regexp.MustCompile(`(\w+)(\=\=|\!\=|\=\=\=|\!\=\=|\~|\!\~|>|<|>\=|\=<|\$\=\=|\$\>|\$\>\=|\$\<|\$\<\=|\@\=\=|\@\!\=|\@\!\~|\@\=\~)([\w-]+)(\,|\;)?`)
 
@@ -142,15 +137,18 @@ func GenAQLFilterStatement(fmap map[string]string, filters []*Filter, doc string
 							LIMIT 1 
 							RETURN 1
 					)
-					FILTER LENGTH(%s) > 0 
 				`,
 					str,
 					doc,
 					fmap[f.Field],
 					f.Value,
-					str,
 				),
 			)
+			stmts.Add(fmt.Sprintf("LENGTH(%s) > 0", str))
+			// if there's logic, write that too
+			if len(f.Logic) != 0 {
+				stmts.Add(fmt.Sprintf("\n %s ", lmap[f.Logic]))
+			}
 		} else if _, ok := dmap[f.Operator]; ok {
 			// validate date format
 			if err := dateValidator(f.Value); err != nil {
@@ -158,7 +156,7 @@ func GenAQLFilterStatement(fmap map[string]string, filters []*Filter, doc string
 			}
 			// write time conversion into AQL query
 			stmts.Add(fmt.Sprintf(
-				"FILTER %s.%s %s DATE_ISO8601('%s')",
+				"%s.%s %s DATE_ISO8601('%s')",
 				doc,
 				fmap[f.Field],
 				omap[f.Operator],
@@ -166,13 +164,13 @@ func GenAQLFilterStatement(fmap map[string]string, filters []*Filter, doc string
 			))
 			// if there's logic, write that too
 			if len(f.Logic) != 0 {
-				stmts.Add(fmt.Sprintf(" %s ", lmap[f.Logic]))
+				stmts.Add(fmt.Sprintf("\n %s ", lmap[f.Logic]))
 			}
 		} else {
-			// write the rest of AQL statement based on non-date data
+			// write the rest of AQL statement based on regular string data
 			stmts.Add(
 				fmt.Sprintf(
-					"FILTER %s.%s %s %s",
+					"%s.%s %s %s",
 					doc,
 					fmap[f.Field],
 					omap[f.Operator],
@@ -181,7 +179,7 @@ func GenAQLFilterStatement(fmap map[string]string, filters []*Filter, doc string
 			)
 			// if there's logic, write that too
 			if len(f.Logic) != 0 {
-				stmts.Add(fmt.Sprintf(" %s ", lmap[f.Logic]))
+				stmts.Add(fmt.Sprintf("\n %s ", lmap[f.Logic]))
 			}
 		}
 	}
@@ -192,8 +190,20 @@ func toString(l *arraylist.List) string {
 	var clause strings.Builder
 	it := l.Iterator()
 	for it.Next() {
-		// it returns interface{}
-		clause.WriteString(it.Value().(string))
+		// print all LET statements first
+		if strings.Contains(it.Value().(string), "CONTAINS") {
+			clause.WriteString(it.Value().(string))
+		}
+	}
+	// start FILTER statement
+	clause.WriteString("FILTER ")
+	// reset iterator
+	it.Begin()
+	for it.Next() {
+		// print all non-LET statements
+		if !strings.Contains(it.Value().(string), "CONTAINS") {
+			clause.WriteString(it.Value().(string))
+		}
 	}
 	return clause.String()
 }
