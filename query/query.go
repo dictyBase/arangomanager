@@ -128,22 +128,53 @@ func GenAQLFilterStatement(fmap map[string]string, filters []*Filter, doc string
 		// check if operator is used for array item
 		if _, ok := amap[f.Operator]; ok {
 			str := randString(10)
-			// write the rest of AQL statement based on array data
-			stmts.Insert(0,
-				fmt.Sprintf(`
-					LET %s = (
-						FOR x IN %s.%s[*]
-							FILTER CONTAINS(x, LOWER('%s')) 
-							LIMIT 1 
+			if amap[f.Operator] == "=~" {
+				stmts.Insert(0,
+					fmt.Sprintf(`
+						LET %s = (
+							FOR x IN %s.%s[*]
+								FILTER CONTAINS(x, LOWER('%s')) 
+								LIMIT 1 
+								RETURN 1
+						)
+					`,
+						str,
+						doc,
+						fmap[f.Field],
+						f.Value,
+					),
+				)
+			}
+			if amap[f.Operator] == "==" {
+				stmts.Insert(0,
+					fmt.Sprintf(`
+						LET %s = (
+							FILTER '%s' IN %s.%s[*] 
 							RETURN 1
-					)
-				`,
-					str,
-					doc,
-					fmap[f.Field],
-					f.Value,
-				),
-			)
+						)
+					`,
+						str,
+						f.Value,
+						doc,
+						fmap[f.Field],
+					),
+				)
+			}
+			if amap[f.Operator] == "!=" {
+				stmts.Insert(0,
+					fmt.Sprintf(`
+						LET %s = (
+							FILTER '%s' NOT IN %s.%s[*]
+							RETURN 1
+						)
+					`,
+						str,
+						f.Value,
+						doc,
+						fmap[f.Field],
+					),
+				)
+			}
 			stmts.Add(fmt.Sprintf("LENGTH(%s) > 0", str))
 			// if there's logic, write that too
 			if len(f.Logic) != 0 {
