@@ -79,16 +79,7 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	assert.Contains(n, "FILTER", "should contain FILTER term")
 	assert.Contains(n, "doc.email == 'mahomes@gmail.com'", "should contain proper == statement")
 	assert.Contains(n, "OR", "should contain OR term")
-	stmt := fmt.Sprintf(
-		`
-		FOR doc in %s
-			%s
-			RETURN doc
-		`,
-		c,
-		n,
-	)
-	x := dbh.ValidateQ(stmt)
+	x := dbh.ValidateQ(genFullStmt(n))
 	if x != nil {
 		t.Fatalf("invalid AQL query %s", x)
 	}
@@ -104,18 +95,9 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	}
 	assert.Contains(dn, "DATE_ISO8601", "should contain DATE_ISO8601 term")
 	assert.Contains(dn, "OR", "should contain OR term")
-	stmtd := fmt.Sprintf(
-		`
-		FOR doc in %s
-			%s
-			RETURN doc
-		`,
-		c,
-		dn,
-	)
-	xd := dbh.ValidateQ(stmtd)
+	xd := dbh.ValidateQ(genFullStmt(dn))
 	if xd != nil {
-		t.Fatalf("invalid AQL query %s", xd)
+		t.Fatalf("invalid AQL query %s", dn)
 	}
 
 	// test item in array equals
@@ -128,16 +110,7 @@ func TestGenAQLFilterStatement(t *testing.T) {
 		t.Fatalf("error in generating AQL filter statement %s", err)
 	}
 	assert.Contains(an, "LET", "should contain LET term, indicating array item")
-	stmta := fmt.Sprintf(
-		`
-		FOR doc in %s
-			%s
-			RETURN doc
-		`,
-		c,
-		an,
-	)
-	xa := dbh.ValidateQ(stmta)
+	xa := dbh.ValidateQ(genFullStmt(an))
 	if xa != nil {
 		t.Fatalf("invalid AQL query %s", xa)
 	}
@@ -152,16 +125,7 @@ func TestGenAQLFilterStatement(t *testing.T) {
 		t.Fatalf("error in generating AQL filter statement %s", err)
 	}
 	assert.Contains(af, "FILTER CONTAINS", "should contain FILTER CONTAINS statement, indicating array item substring")
-	stmtaf := fmt.Sprintf(
-		`
-		FOR doc in %s
-			%s
-			RETURN doc
-		`,
-		c,
-		af,
-	)
-	xaf := dbh.ValidateQ(stmtaf)
+	xaf := dbh.ValidateQ(genFullStmt(af))
 	if xaf != nil {
 		t.Fatalf("invalid AQL query %s", xaf)
 	}
@@ -177,17 +141,19 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	}
 	assert.Contains(bf, "NOT IN", "should contain NOT IN statement, indicating item is not in array")
 	assert.Contains(bf, "OR", "should contain OR term")
-	stmtb := fmt.Sprintf(
-		`
-		FOR doc in %s
-			%s
-			RETURN doc
-		`,
-		c,
-		bf,
-	)
-	xb := dbh.ValidateQ(stmtb)
+	xb := dbh.ValidateQ(genFullStmt(bf))
 	if xb != nil {
 		t.Fatalf("invalid AQL query %s", xb)
 	}
+}
+
+func genFullStmt(f string) string {
+	return fmt.Sprintf(
+		`
+		FOR doc in test_collection
+			%s
+			RETURN doc
+		`,
+		f,
+	)
 }
