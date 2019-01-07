@@ -231,3 +231,11 @@ func (d *Database) FindOrCreateGraph(name string, defs []driver.EdgeDefinition) 
 func (d *Database) Drop() error {
 	return d.dbh.Remove(context.Background())
 }
+
+// ValidateQ validates the query
+func (d *Database) ValidateQ(q string) error {
+	if err := d.dbh.ValidateQuery(context.Background(), q); err != nil {
+		return fmt.Errorf("error in validating the query %s", err)
+	}
+	return nil
+}
