@@ -222,7 +222,7 @@ func toString(l *arraylist.List) string {
 	it := l.Iterator()
 	for it.Next() {
 		// print all LET statements first
-		if strings.Contains(it.Value().(string), "CONTAINS") {
+		if strings.Contains(it.Value().(string), "LET ") {
 			clause.WriteString(it.Value().(string))
 		}
 	}
@@ -232,7 +232,7 @@ func toString(l *arraylist.List) string {
 	it.Begin()
 	for it.Next() {
 		// print all non-LET statements
-		if !strings.Contains(it.Value().(string), "CONTAINS") {
+		if !strings.Contains(it.Value().(string), "LET ") {
 			clause.WriteString(it.Value().(string))
 		}
 	}
