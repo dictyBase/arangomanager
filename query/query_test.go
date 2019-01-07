@@ -42,6 +42,7 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	assert := assert.New(t)
 	assert.Contains(n, "FILTER", "should contain FILTER term")
 	assert.Contains(n, "doc.email == 'mahomes@gmail.com'", "should contain proper == statement")
+	assert.Contains(n, "OR", "should contain OR term")
 
 	// test date equals
 	ds, err := ParseFilterString("created_at$==2019,created_at$==2018")
@@ -53,6 +54,7 @@ func TestGenAQLFilterStatement(t *testing.T) {
 		t.Fatalf("error in generating AQL filter statement %s", err)
 	}
 	assert.Contains(dn, "DATE_ISO8601", "should contain DATE_ISO8601 term")
+	assert.Contains(dn, "OR", "should contain OR term")
 
 	// test item in array equals
 	as, err := ParseFilterString("sport@==basketball")
@@ -86,4 +88,5 @@ func TestGenAQLFilterStatement(t *testing.T) {
 		t.Fatalf("error in generating AQL filter statement %s", err)
 	}
 	assert.Contains(bf, "NOT IN", "should contain NOT IN statement, indicating item is not in array")
+	assert.Contains(bf, "OR", "should contain OR term")
 }
