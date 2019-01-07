@@ -1,7 +1,13 @@
 package query
 
 import (
+	"fmt"
+	"log"
 	"testing"
+
+	driver "github.com/arangodb/go-driver"
+	manager "github.com/dictyBase/arangomanager"
+	"github.com/dictyBase/arangomanager/testarango"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -11,6 +17,19 @@ var fmap = map[string]string{
 	"created_at": "created_at",
 	"sport":      "sports",
 	"email":      "email",
+}
+
+var gta *testarango.TestArango
+
+func getConnectParams() *manager.ConnectParams {
+	return &manager.ConnectParams{
+		User:     gta.User,
+		Pass:     gta.Pass,
+		Database: gta.Database,
+		Host:     gta.Host,
+		Port:     gta.Port,
+		Istls:    false,
+	}
 }
 
 func TestParseFilterString(t *testing.T) {
@@ -30,6 +49,23 @@ func TestParseFilterString(t *testing.T) {
 }
 
 func TestGenAQLFilterStatement(t *testing.T) {
+	ta, err := testarango.NewTestArangoFromEnv(true)
+	if err != nil {
+		log.Fatalf("unable to construct new TestArango instance %s", err)
+	}
+	gta = ta
+	dbh, err := ta.DB(ta.Database)
+	if err != nil {
+		log.Fatalf("unable to get database %s", err)
+	}
+	c := "test_collection"
+	_, err = dbh.CreateCollection(c, &driver.CreateCollectionOptions{})
+	if err != nil {
+		dbh.Drop()
+		log.Fatalf("unable to create collection %s %s", c, err)
+	}
+	defer dbh.Drop()
+
 	// test regular string equals
 	s, err := ParseFilterString("email===mahomes@gmail.com,email===brees@gmail.com")
 	if err != nil {
@@ -43,6 +79,19 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	assert.Contains(n, "FILTER", "should contain FILTER term")
 	assert.Contains(n, "doc.email == 'mahomes@gmail.com'", "should contain proper == statement")
 	assert.Contains(n, "OR", "should contain OR term")
+	stmt := fmt.Sprintf(
+		`
+		FOR doc in %s
+			%s
+			RETURN doc
+		`,
+		c,
+		n,
+	)
+	x := dbh.ValidateQ(stmt)
+	if x != nil {
+		t.Fatalf("invalid AQL query %s", x)
+	}
 
 	// test date equals
 	ds, err := ParseFilterString("created_at$==2019,created_at$==2018")
@@ -55,6 +104,19 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	}
 	assert.Contains(dn, "DATE_ISO8601", "should contain DATE_ISO8601 term")
 	assert.Contains(dn, "OR", "should contain OR term")
+	stmtd := fmt.Sprintf(
+		`
+		FOR doc in %s
+			%s
+			RETURN doc
+		`,
+		c,
+		dn,
+	)
+	xd := dbh.ValidateQ(stmtd)
+	if xd != nil {
+		t.Fatalf("invalid AQL query %s", xd)
+	}
 
 	// test item in array equals
 	as, err := ParseFilterString("sport@==basketball")
@@ -66,6 +128,19 @@ func TestGenAQLFilterStatement(t *testing.T) {
 		t.Fatalf("error in generating AQL filter statement %s", err)
 	}
 	assert.Contains(an, "LET", "should contain LET term, indicating array item")
+	stmta := fmt.Sprintf(
+		`
+		FOR doc in %s
+			%s
+			RETURN doc
+		`,
+		c,
+		an,
+	)
+	xa := dbh.ValidateQ(stmta)
+	if xa != nil {
+		t.Fatalf("invalid AQL query %s", xa)
+	}
 
 	// test item substring in array
 	a, err := ParseFilterString("sport@=~basket")
@@ -77,6 +152,19 @@ func TestGenAQLFilterStatement(t *testing.T) {
 		t.Fatalf("error in generating AQL filter statement %s", err)
 	}
 	assert.Contains(af, "FILTER CONTAINS", "should contain FILTER CONTAINS statement, indicating array item substring")
+	stmtaf := fmt.Sprintf(
+		`
+		FOR doc in %s
+			%s
+			RETURN doc
+		`,
+		c,
+		af,
+	)
+	xaf := dbh.ValidateQ(stmtaf)
+	if xaf != nil {
+		t.Fatalf("invalid AQL query %s", xaf)
+	}
 
 	// test item in array not equals
 	b, err := ParseFilterString("sport@!=banana,sport@!=apple")
@@ -89,4 +177,17 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	}
 	assert.Contains(bf, "NOT IN", "should contain NOT IN statement, indicating item is not in array")
 	assert.Contains(bf, "OR", "should contain OR term")
+	stmtb := fmt.Sprintf(
+		`
+		FOR doc in %s
+			%s
+			RETURN doc
+		`,
+		c,
+		bf,
+	)
+	xb := dbh.ValidateQ(stmtb)
+	if xb != nil {
+		t.Fatalf("invalid AQL query %s", xb)
+	}
 }
