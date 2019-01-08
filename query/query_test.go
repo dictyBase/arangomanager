@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	driver "github.com/arangodb/go-driver"
-	manager "github.com/dictyBase/arangomanager"
 	"github.com/dictyBase/arangomanager/testarango"
 
 	"github.com/stretchr/testify/assert"
@@ -20,17 +19,6 @@ var fmap = map[string]string{
 }
 
 var gta *testarango.TestArango
-
-func getConnectParams() *manager.ConnectParams {
-	return &manager.ConnectParams{
-		User:     gta.User,
-		Pass:     gta.Pass,
-		Database: gta.Database,
-		Host:     gta.Host,
-		Port:     gta.Port,
-		Istls:    false,
-	}
-}
 
 func TestParseFilterString(t *testing.T) {
 	s, err := ParseFilterString("sport===football;email===mahomes@gmail.com")
@@ -61,10 +49,18 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	c := "test_collection"
 	_, err = dbh.CreateCollection(c, &driver.CreateCollectionOptions{})
 	if err != nil {
-		dbh.Drop()
+		e := dbh.Drop()
+		if e != nil {
+			log.Fatalf("could not remove database %s", e)
+		}
 		log.Fatalf("unable to create collection %s %s", c, err)
 	}
-	defer dbh.Drop()
+	defer func() {
+		e := dbh.Drop()
+		if e != nil {
+			log.Fatalf("could not remove database %s", e)
+		}
+	}()
 
 	// test regular string equals
 	s, err := ParseFilterString("email===mahomes@gmail.com,email===brees@gmail.com")
