@@ -12,7 +12,7 @@ type Database struct {
 	dbh driver.Database
 }
 
-// DoSearch query the database with bind parameters that is expected to return
+// SearchRows query the database with bind parameters that is expected to return
 // multiple rows of result
 func (d *Database) SearchRows(query string, bindVars map[string]interface{}) (*Resultset, error) {
 	// validate
@@ -192,7 +192,7 @@ func (d *Database) CreateCollection(name string, opt *driver.CreateCollectionOpt
 	if ok {
 		return c, fmt.Errorf("collection %s exists", name)
 	}
-	return d.dbh.CreateCollection(nil, name, opt)
+	return d.dbh.CreateCollection(context.TODO(), name, opt)
 }
 
 // FindOrCreateCollection finds or creates a collection in the database. The
@@ -207,7 +207,7 @@ func (d *Database) FindOrCreateCollection(name string, opt *driver.CreateCollect
 	if ok {
 		return d.dbh.Collection(context.Background(), name)
 	}
-	return d.dbh.CreateCollection(nil, name, opt)
+	return d.dbh.CreateCollection(context.TODO(), name, opt)
 }
 
 // FindOrCreateGraph finds or creates a named graph in the database

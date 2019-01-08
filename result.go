@@ -11,7 +11,6 @@ import (
 // Result is a cursor for single row of data
 type Result struct {
 	cursor driver.Cursor
-	ctx    context.Context
 	empty  bool
 }
 
@@ -22,7 +21,7 @@ func (r *Result) IsEmpty() bool {
 
 // Read read the row of data to i interface
 func (r *Result) Read(i interface{}) error {
-	meta, err := r.cursor.ReadDocument(nil, i)
+	meta, err := r.cursor.ReadDocument(context.TODO(), i)
 	if err != nil {
 		return fmt.Errorf("error in reading document %s", err)
 	}
