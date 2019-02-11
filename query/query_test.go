@@ -61,13 +61,12 @@ func TestGenAQLFilterStatement(t *testing.T) {
 			log.Fatalf("could not remove database %s", e)
 		}
 	}()
-
 	// test regular string equals
 	s, err := ParseFilterString("email===mahomes@gmail.com,email===brees@gmail.com")
 	if err != nil {
 		t.Fatalf("error in parsing filter string %s", err)
 	}
-	n, err := GenAQLFilterStatement(fmap, s, "doc")
+	n, err := GenAQLFilterStatement(&StatementParameters{Fmap: fmap, Filters: s, Doc: "doc"})
 	if err != nil {
 		t.Fatalf("error in generating AQL filter statement %s", err)
 	}
@@ -85,7 +84,7 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error in parsing filter string %s", err)
 	}
-	dn, err := GenAQLFilterStatement(fmap, ds, "doc")
+	dn, err := GenAQLFilterStatement(&StatementParameters{Fmap: fmap, Filters: ds, Doc: "doc"})
 	if err != nil {
 		t.Fatalf("error in generating AQL filter statement %s", err)
 	}
@@ -101,7 +100,7 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error in parsing filter string %s", err)
 	}
-	an, err := GenAQLFilterStatement(fmap, as, "doc")
+	an, err := GenAQLFilterStatement(&StatementParameters{Fmap: fmap, Filters: as, Doc: "doc"})
 	if err != nil {
 		t.Fatalf("error in generating AQL filter statement %s", err)
 	}
@@ -116,7 +115,7 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error in parsing filter string %s", err)
 	}
-	af, err := GenAQLFilterStatement(fmap, a, "doc")
+	af, err := GenAQLFilterStatement(&StatementParameters{Fmap: fmap, Filters: a, Doc: "doc"})
 	if err != nil {
 		t.Fatalf("error in generating AQL filter statement %s", err)
 	}
@@ -131,7 +130,7 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error in parsing filter string %s", err)
 	}
-	bf, err := GenAQLFilterStatement(fmap, b, "doc")
+	bf, err := GenAQLFilterStatement(&StatementParameters{Fmap: fmap, Filters: b, Doc: "doc"})
 	if err != nil {
 		t.Fatalf("error in generating AQL filter statement %s", err)
 	}

@@ -30,6 +30,18 @@ type Filter struct {
 	Logic string
 }
 
+// StatementParameters is a container for elements needed in the AQL statement
+type StatementParameters struct {
+	// Map of filters to database fields
+	Fmap map[string]string
+	// Slice of Filter structs, contains all necessary items for AQL statement
+	Filters []*Filter
+	// The variable used for looping inside a collection (i.e. the "s" in "FOR s IN stock")
+	Doc string
+	// The variable used for looping inside a graph (i.e. the "v" in "FOR v IN 1..1 OUTBOUND s GRAPH 'xyz'")
+	Vert string
+}
+
 func getOperatorMap() map[string]string {
 	return map[string]string{
 		"==":  "==",
@@ -112,7 +124,11 @@ func ParseFilterString(fstr string) ([]*Filter, error) {
 
 // GenAQLFilterStatement generates an AQL(arangodb query language) compatible
 // filter query statement
-func GenAQLFilterStatement(fmap map[string]string, filters []*Filter, doc string) (string, error) {
+func GenAQLFilterStatement(p *StatementParameters) (string, error) {
+	fmap := p.Fmap
+	filters := p.Filters
+	doc := p.Doc
+	vert := p.Vert
 	// set map for logic
 	lmap := map[string]string{",": "OR", ";": "AND"}
 	// get map of all allowed operators
@@ -129,51 +145,101 @@ func GenAQLFilterStatement(fmap map[string]string, filters []*Filter, doc string
 		if _, ok := amap[f.Operator]; ok {
 			str := randString(10)
 			if amap[f.Operator] == "=~" {
-				stmts.Insert(0,
-					fmt.Sprintf(`
-						LET %s = (
-							FOR x IN %s.%s[*]
-								FILTER CONTAINS(x, LOWER('%s')) 
-								LIMIT 1 
-								RETURN 1
-						)
-					`,
-						str,
-						doc,
-						fmap[f.Field],
-						f.Value,
-					),
-				)
+				if len(vert) > 0 {
+					stmts.Insert(0,
+						fmt.Sprintf(`
+							LET %s = (
+								FOR x IN %s.%s[*]
+									FILTER CONTAINS(x, LOWER('%s')) 
+									LIMIT 1 
+									RETURN 1
+							)
+						`,
+							str,
+							vert,
+							fmap[f.Field],
+							f.Value,
+						),
+					)
+				} else {
+					stmts.Insert(0,
+						fmt.Sprintf(`
+							LET %s = (
+								FOR x IN %s.%s[*]
+									FILTER CONTAINS(x, LOWER('%s')) 
+									LIMIT 1 
+									RETURN 1
+							)
+						`,
+							str,
+							doc,
+							fmap[f.Field],
+							f.Value,
+						),
+					)
+				}
 			}
 			if amap[f.Operator] == "==" {
-				stmts.Insert(0,
-					fmt.Sprintf(`
-						LET %s = (
-							FILTER '%s' IN %s.%s[*] 
-							RETURN 1
-						)
-					`,
-						str,
-						f.Value,
-						doc,
-						fmap[f.Field],
-					),
-				)
+				if len(vert) > 0 {
+					stmts.Insert(0,
+						fmt.Sprintf(`
+							LET %s = (
+								FILTER '%s' IN %s.%s[*] 
+								RETURN 1
+							)
+						`,
+							str,
+							f.Value,
+							vert,
+							fmap[f.Field],
+						),
+					)
+				} else {
+					stmts.Insert(0,
+						fmt.Sprintf(`
+							LET %s = (
+								FILTER '%s' IN %s.%s[*] 
+								RETURN 1
+							)
+						`,
+							str,
+							f.Value,
+							doc,
+							fmap[f.Field],
+						),
+					)
+				}
 			}
 			if amap[f.Operator] == "!=" {
-				stmts.Insert(0,
-					fmt.Sprintf(`
-						LET %s = (
-							FILTER '%s' NOT IN %s.%s[*]
-							RETURN 1
-						)
-					`,
-						str,
-						f.Value,
-						doc,
-						fmap[f.Field],
-					),
-				)
+				if len(vert) > 0 {
+					stmts.Insert(0,
+						fmt.Sprintf(`
+							LET %s = (
+								FILTER '%s' NOT IN %s.%s[*]
+								RETURN 1
+							)
+						`,
+							str,
+							f.Value,
+							vert,
+							fmap[f.Field],
+						),
+					)
+				} else {
+					stmts.Insert(0,
+						fmt.Sprintf(`
+							LET %s = (
+								FILTER '%s' NOT IN %s.%s[*]
+								RETURN 1
+							)
+						`,
+							str,
+							f.Value,
+							doc,
+							fmap[f.Field],
+						),
+					)
+				}
 			}
 			stmts.Add(fmt.Sprintf("LENGTH(%s) > 0", str))
 			// if there's logic, write that too
