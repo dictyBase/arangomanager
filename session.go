@@ -163,7 +163,7 @@ func (s *Session) getDatabase(name string) (*Database, error) {
 		return &Database{}, err
 	}
 	if !ok {
-		return &Database{}, fmt.Errorf("error in finding database %s", err)
+		return &Database{}, fmt.Errorf("error in finding database named %s: %s", name, err)
 	}
 	dbh, err := s.client.Database(context.Background(), name)
 	if err != nil {
