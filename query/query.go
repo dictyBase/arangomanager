@@ -18,6 +18,11 @@ var qre = regexp.MustCompile(`(\w+)(\=\=|\!\=|\=\=\=|\!\=\=|\~|\!\~|>|<|>\=|\=<|
 // https://play.golang.org/p/NzeBmlQh13v
 var dre = regexp.MustCompile(`^\d{4}\-(0[1-9]|1[012])$|^\d{4}$|^\d{4}\-(0[1-9]|1[012])\-(0[1-9]|[12][0-9]|3[01])$`)
 
+var arrToAQL = map[string]string{
+	"==": "IN",
+	"!=": "NOT IN",
+}
+
 // Filter is a container for filter parameters
 type Filter struct {
 	// Field of the object on which the filter will be applied
@@ -156,40 +161,22 @@ func GenQualifiedAQLFilterStatement(fmap map[string]string, filters []*Filter) (
 						f.Value,
 					),
 				)
-			}
-			if amap[f.Operator] == "==" {
+			} else {
 				stmts["let"] = append(stmts["let"],
 					fmt.Sprintf(`
 							LET %s = (
-								FILTER '%s' IN %s[*] 
+								FILTER '%s' %s %s[*] 
 								RETURN 1
 							)
 						`,
 						str,
 						f.Value,
-						fmap[f.Field],
-					),
-				)
-			}
-			if amap[f.Operator] == "!=" {
-				stmts["let"] = append(stmts["let"],
-					fmt.Sprintf(`
-							LET %s = (
-								FILTER '%s' NOT IN %s[*]
-								RETURN 1
-							)
-						`,
-						str,
-						f.Value,
+						arrToAQL[amap[f.Operator]],
 						fmap[f.Field],
 					),
 				)
 			}
 			stmts["nonlet"] = append(stmts["nonlet"], fmt.Sprintf("LENGTH(%s) > 0", str))
-			// if there's logic, write that too
-			if len(f.Logic) != 0 {
-				stmts["nonlet"] = append(stmts["nonlet"], fmt.Sprintf("\n %s ", lmap[f.Logic]))
-			}
 		} else if _, ok := dmap[f.Operator]; ok {
 			// validate date format
 			if err := dateValidator(f.Value); err != nil {
@@ -202,10 +189,6 @@ func GenQualifiedAQLFilterStatement(fmap map[string]string, filters []*Filter) (
 				omap[f.Operator],
 				f.Value,
 			))
-			// if there's logic, write that too
-			if len(f.Logic) != 0 {
-				stmts["nonlet"] = append(stmts["nonlet"], fmt.Sprintf("\n %s ", lmap[f.Logic]))
-			}
 		} else {
 			// write the rest of AQL statement based on regular string data
 			stmts["nonlet"] = append(stmts["nonlet"],
@@ -216,9 +199,10 @@ func GenQualifiedAQLFilterStatement(fmap map[string]string, filters []*Filter) (
 					checkAndQuote(f.Operator, f.Value),
 				))
 			// if there's logic, write that too
-			if len(f.Logic) != 0 {
-				stmts["nonlet"] = append(stmts["nonlet"], fmt.Sprintf("\n %s ", lmap[f.Logic]))
-			}
+		}
+		// if there's logic, write that too
+		if len(f.Logic) != 0 {
+			stmts["nonlet"] = append(stmts["nonlet"], fmt.Sprintf("\n %s ", lmap[f.Logic]))
 		}
 	}
 	return toFullStatement(stmts), nil
