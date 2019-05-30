@@ -18,6 +18,12 @@ var fmap = map[string]string{
 	"email":      "email",
 }
 
+var qmap = map[string]string{
+	"created_at": "foo.created_at",
+	"sport":      "bar.game",
+	"email":      "fizz.identifier",
+}
+
 var gta *testarango.TestArango
 
 func TestParseFilterString(t *testing.T) {
@@ -34,6 +40,90 @@ func TestParseFilterString(t *testing.T) {
 		t.Fatalf("error in parsing filter string %s", err)
 	}
 	assert.Equal(len(b), 0, "should have empty slice since regex doesn't match string")
+}
+
+func TestGenQualifiedAQLFilterStatement(t *testing.T) {
+	// test regular string equals
+	f, err := ParseFilterString("email===mahomes@gmail.com,email===brees@gmail.com")
+	if err != nil {
+		t.Fatalf("error in parsing filter string %s", err)
+	}
+	n, err := GenQualifiedAQLFilterStatement(qmap, f)
+	if err != nil {
+		t.Fatalf("error in generating AQL filter statement %s", err)
+	}
+	assert := assert.New(t)
+	assert.Contains(n, "FILTER", "should contain FILTER term")
+	assert.Contains(n, "fizz.identifier == 'mahomes@gmail.com'", "should contain proper == statement")
+	assert.Contains(n, "fizz.identifier == 'brees@gmail.com'", "should contain proper == statement")
+	assert.Contains(n, "OR", "should contain OR term")
+
+	// test date equals
+	df, err := ParseFilterString("created_at$==2019,created_at$==2018")
+	if err != nil {
+		t.Fatalf("error in parsing filter string %s", err)
+	}
+	dn, err := GenQualifiedAQLFilterStatement(qmap, df)
+	if err != nil {
+		t.Fatalf("error in generating AQL filter statement %s", err)
+	}
+	assert.Contains(dn, "DATE_ISO8601", "should contain DATE_ISO8601 term")
+	assert.Contains(dn, "OR", "should contain OR term")
+	assert.Contains(
+		dn,
+		"foo.created_at == DATE_ISO8601('2018')",
+		"should contain proper date statement",
+	)
+	// test item in array equals
+	af, err := ParseFilterString("sport@==basketball")
+	if err != nil {
+		t.Fatalf("error in parsing filter string %s", err)
+	}
+	an, err := GenQualifiedAQLFilterStatement(qmap, af)
+	if err != nil {
+		t.Fatalf("error in generating AQL filter statement %s", err)
+	}
+	assert.Contains(an, "LET", "should contain LET term, indicating array item")
+	assert.Contains(
+		an,
+		"FILTER 'basketball' IN bar.game[*]",
+		"should contain an array containing statement",
+	)
+	// test item substring in array
+	af2, err := ParseFilterString("sport@=~basket")
+	if err != nil {
+		t.Fatalf("error in parsing filter string %s", err)
+	}
+	an2, err := GenQualifiedAQLFilterStatement(qmap, af2)
+	if err != nil {
+		t.Fatalf("error in generating AQL filter statement %s", err)
+	}
+	assert.Contains(
+		an2,
+		"FILTER CONTAINS(x, LOWER('basket'))",
+		"should contain FILTER CONTAINS statement, indicating array item substring",
+	)
+	// test item in array not equals
+	bf, err := ParseFilterString("sport@!=banana,sport@!=apple")
+	if err != nil {
+		t.Fatalf("error in parsing filter string %s", err)
+	}
+	bn, err := GenQualifiedAQLFilterStatement(qmap, bf)
+	if err != nil {
+		t.Fatalf("error in generating AQL filter statement %s", err)
+	}
+	assert.Contains(bn, "NOT IN", "should contain NOT IN statement, indicating item is not in array")
+	assert.Contains(bn, "OR", "should contain OR term")
+	assert.Contains(
+		bn,
+		"FILTER 'banana' NOT IN bar.game[*]",
+		"should contain filter with NOT IN operator with collection and column name",
+	)
+	assert.Contains(
+		bn,
+		"FILTER 'apple' NOT IN bar.game[*]",
+		"should contain filter with NOT IN operator with collection and column name",
+	)
 }
 
 func TestGenAQLFilterStatement(t *testing.T) {
@@ -78,6 +168,7 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	if x != nil {
 		t.Fatalf("invalid AQL query %s", x)
 	}
+	t.Log(n)
 
 	// test date equals
 	ds, err := ParseFilterString("created_at$==2019,created_at$==2018")
@@ -94,6 +185,7 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	if xd != nil {
 		t.Fatalf("invalid AQL query %s", dn)
 	}
+	t.Log(dn)
 
 	// test item in array equals
 	as, err := ParseFilterString("sport@==basketball")
@@ -109,6 +201,7 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	if xa != nil {
 		t.Fatalf("invalid AQL query %s", xa)
 	}
+	t.Log(an)
 
 	// test item substring in array
 	a, err := ParseFilterString("sport@=~basket")
@@ -124,6 +217,7 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	if xaf != nil {
 		t.Fatalf("invalid AQL query %s", xaf)
 	}
+	t.Log(af)
 
 	// test item in array not equals
 	b, err := ParseFilterString("sport@!=banana,sport@!=apple")
@@ -140,6 +234,7 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	if xb != nil {
 		t.Fatalf("invalid AQL query %s", xb)
 	}
+	t.Log(bf)
 }
 
 func genFullStmt(f string) string {

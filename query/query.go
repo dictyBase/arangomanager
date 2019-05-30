@@ -18,6 +18,11 @@ var qre = regexp.MustCompile(`(\w+)(\=\=|\!\=|\=\=\=|\!\=\=|\~|\!\~|>|<|>\=|\=<|
 // https://play.golang.org/p/NzeBmlQh13v
 var dre = regexp.MustCompile(`^\d{4}\-(0[1-9]|1[012])$|^\d{4}$|^\d{4}\-(0[1-9]|1[012])\-(0[1-9]|[12][0-9]|3[01])$`)
 
+var arrToAQL = map[string]string{
+	"==": "IN",
+	"!=": "NOT IN",
+}
+
 // Filter is a container for filter parameters
 type Filter struct {
 	// Field of the object on which the filter will be applied
@@ -120,6 +125,87 @@ func ParseFilterString(fstr string) ([]*Filter, error) {
 	}
 	// return slice of Filter structs
 	return filters, nil
+}
+
+// GenQualifiedAQLFilterStatement generates an AQL(arangodb query language)
+// compatible filter query statement where the fields map is expected to
+// contain namespaced(fully qualified like
+//		{
+//			tag: "doc.label",
+//			name: "doc.level.identifier"
+//		}
+//	)
+// mapping to database fields
+func GenQualifiedAQLFilterStatement(fmap map[string]string, filters []*Filter) (string, error) {
+	lmap := map[string]string{",": "OR", ";": "AND"}
+	omap := getOperatorMap()
+	dmap := getDateOperatorMap()
+	amap := getArrayOperatorMap()
+	stmts := make(map[string][]string)
+	for _, f := range filters {
+		// check if operator is used for array item
+		if _, ok := amap[f.Operator]; ok {
+			str := randString(10)
+			if amap[f.Operator] == "=~" {
+				stmts["let"] = append(stmts["let"],
+					fmt.Sprintf(`
+							LET %s = (
+								FOR x IN %s[*]
+									FILTER CONTAINS(x, LOWER('%s')) 
+									LIMIT 1 
+									RETURN 1
+							)
+						`,
+						str,
+						fmap[f.Field],
+						f.Value,
+					),
+				)
+			} else {
+				stmts["let"] = append(stmts["let"],
+					fmt.Sprintf(`
+							LET %s = (
+								FILTER '%s' %s %s[*] 
+								RETURN 1
+							)
+						`,
+						str,
+						f.Value,
+						arrToAQL[amap[f.Operator]],
+						fmap[f.Field],
+					),
+				)
+			}
+			stmts["nonlet"] = append(stmts["nonlet"], fmt.Sprintf("LENGTH(%s) > 0", str))
+		} else if _, ok := dmap[f.Operator]; ok {
+			// validate date format
+			if err := dateValidator(f.Value); err != nil {
+				return "", err
+			}
+			// write time conversion into AQL query
+			stmts["nonlet"] = append(stmts["nonlet"], fmt.Sprintf(
+				"%s %s DATE_ISO8601('%s')",
+				fmap[f.Field],
+				omap[f.Operator],
+				f.Value,
+			))
+		} else {
+			// write the rest of AQL statement based on regular string data
+			stmts["nonlet"] = append(stmts["nonlet"],
+				fmt.Sprintf(
+					"%s %s %s",
+					fmap[f.Field],
+					omap[f.Operator],
+					checkAndQuote(f.Operator, f.Value),
+				))
+			// if there's logic, write that too
+		}
+		// if there's logic, write that too
+		if len(f.Logic) != 0 {
+			stmts["nonlet"] = append(stmts["nonlet"], fmt.Sprintf("\n %s ", lmap[f.Logic]))
+		}
+	}
+	return toFullStatement(stmts), nil
 }
 
 // GenAQLFilterStatement generates an AQL(arangodb query language) compatible
@@ -281,6 +367,18 @@ func GenAQLFilterStatement(p *StatementParameters) (string, error) {
 		}
 	}
 	return toString(stmts), nil
+}
+
+func toFullStatement(m map[string][]string) string {
+	var clause strings.Builder
+	if v, ok := m["let"]; ok {
+		clause.WriteString(strings.Join(v, ""))
+	}
+	clause.WriteString(" FILTER ")
+	if v, ok := m["nonlet"]; ok {
+		clause.WriteString(strings.Join(v, ""))
+	}
+	return clause.String()
 }
 
 func toString(l *arraylist.List) string {
