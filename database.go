@@ -12,6 +12,11 @@ type Database struct {
 	dbh driver.Database
 }
 
+// Handler returns the raw arangodb database handler
+func (d *Database) Handler() driver.Database {
+    return d.dbh 
+}
+
 // SearchRows query the database with bind parameters that is expected to return
 // multiple rows of result
 func (d *Database) SearchRows(query string, bindVars map[string]interface{}) (*Resultset, error) {
