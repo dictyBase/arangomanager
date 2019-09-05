@@ -95,23 +95,17 @@ func getArrayOperatorMap() map[string]string {
 // structure. The filter string specification is defined in
 // corresponding protocol buffer definition.
 func ParseFilterString(fstr string) ([]*Filter, error) {
-	// create slice that will contain Filter structs
 	var filters []*Filter
-	// get all regex matches for fstr
 	m := qre.FindAllStringSubmatch(fstr, -1)
-	// if no matches, return empty slice
 	if len(m) == 0 {
 		return filters, nil
 	}
-	// get map of all allowed operators
 	omap := getOperatorMap()
-	// loop through separate items from fstr string
 	for _, n := range m {
 		// if no operator found in map, return slice and throw error
 		if _, ok := omap[n[2]]; !ok {
 			return filters, fmt.Errorf("filter operator %s not allowed", n[2])
 		}
-		// initialize Filter container with appropriate data
 		f := &Filter{
 			Field:    n[1],
 			Operator: n[2],
@@ -120,10 +114,8 @@ func ParseFilterString(fstr string) ([]*Filter, error) {
 		if len(n) == 5 {
 			f.Logic = n[4]
 		}
-		// add this Filter to slice
 		filters = append(filters, f)
 	}
-	// return slice of Filter structs
 	return filters, nil
 }
 
@@ -215,17 +207,11 @@ func GenAQLFilterStatement(p *StatementParameters) (string, error) {
 	filters := p.Filters
 	doc := p.Doc
 	vert := p.Vert
-	// set map for logic
 	lmap := map[string]string{",": "OR", ";": "AND"}
-	// get map of all allowed operators
 	omap := getOperatorMap()
-	// get map of all date operators
 	dmap := getDateOperatorMap()
-	// get map of all array operators
 	amap := getArrayOperatorMap()
-	// initialize variable for stmts slice
 	stmts := arraylist.New()
-	// loop over items in filters slice
 	for _, f := range filters {
 		// check if operator is used for array item
 		if _, ok := amap[f.Operator]; ok {
@@ -333,7 +319,6 @@ func GenAQLFilterStatement(p *StatementParameters) (string, error) {
 				stmts.Add(fmt.Sprintf("\n %s ", lmap[f.Logic]))
 			}
 		} else if _, ok := dmap[f.Operator]; ok {
-			// validate date format
 			if err := dateValidator(f.Value); err != nil {
 				return "", err
 			}
@@ -345,7 +330,6 @@ func GenAQLFilterStatement(p *StatementParameters) (string, error) {
 				omap[f.Operator],
 				f.Value,
 			))
-			// if there's logic, write that too
 			if len(f.Logic) != 0 {
 				stmts.Add(fmt.Sprintf("\n %s ", lmap[f.Logic]))
 			}
@@ -360,7 +344,6 @@ func GenAQLFilterStatement(p *StatementParameters) (string, error) {
 					checkAndQuote(f.Operator, f.Value),
 				),
 			)
-			// if there's logic, write that too
 			if len(f.Logic) != 0 {
 				stmts.Add(fmt.Sprintf("\n %s ", lmap[f.Logic]))
 			}
@@ -392,7 +375,6 @@ func toString(l *arraylist.List) string {
 	}
 	// start FILTER statement
 	clause.WriteString("FILTER ")
-	// reset iterator
 	it.Begin()
 	for it.Next() {
 		// print all non-LET statements
