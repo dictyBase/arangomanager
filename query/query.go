@@ -212,14 +212,19 @@ func GenAQLFilterStatement(p *StatementParameters) (string, error) {
 	dmap := getDateOperatorMap()
 	amap := getArrayOperatorMap()
 	stmts := arraylist.New()
+	var inner string
+	if len(vert) > 0 {
+		inner = vert
+	} else {
+		inner = doc
+	}
 	for _, f := range filters {
 		// check if operator is used for array item
 		if _, ok := amap[f.Operator]; ok {
 			str := randString(10)
 			if amap[f.Operator] == "=~" {
-				if len(vert) > 0 {
-					stmts.Insert(0,
-						fmt.Sprintf(`
+				stmts.Insert(0,
+					fmt.Sprintf(`
 							LET %s = (
 								FOR x IN %s.%s[*]
 									FILTER CONTAINS(x, LOWER('%s')) 
@@ -227,91 +232,42 @@ func GenAQLFilterStatement(p *StatementParameters) (string, error) {
 									RETURN 1
 							)
 						`,
-							str,
-							vert,
-							fmap[f.Field],
-							f.Value,
-						),
-					)
-				} else {
-					stmts.Insert(0,
-						fmt.Sprintf(`
-							LET %s = (
-								FOR x IN %s.%s[*]
-									FILTER CONTAINS(x, LOWER('%s')) 
-									LIMIT 1 
-									RETURN 1
-							)
-						`,
-							str,
-							doc,
-							fmap[f.Field],
-							f.Value,
-						),
-					)
-				}
+						str,
+						inner,
+						fmap[f.Field],
+						f.Value,
+					),
+				)
 			}
 			if amap[f.Operator] == "==" {
-				if len(vert) > 0 {
-					stmts.Insert(0,
-						fmt.Sprintf(`
+				stmts.Insert(0,
+					fmt.Sprintf(`
 							LET %s = (
 								FILTER '%s' IN %s.%s[*] 
 								RETURN 1
 							)
 						`,
-							str,
-							f.Value,
-							vert,
-							fmap[f.Field],
-						),
-					)
-				} else {
-					stmts.Insert(0,
-						fmt.Sprintf(`
-							LET %s = (
-								FILTER '%s' IN %s.%s[*] 
-								RETURN 1
-							)
-						`,
-							str,
-							f.Value,
-							doc,
-							fmap[f.Field],
-						),
-					)
-				}
+						str,
+						f.Value,
+						inner,
+						fmap[f.Field],
+					),
+				)
 			}
 			if amap[f.Operator] == "!=" {
-				if len(vert) > 0 {
-					stmts.Insert(0,
-						fmt.Sprintf(`
+				stmts.Insert(0,
+					fmt.Sprintf(`
 							LET %s = (
 								FILTER '%s' NOT IN %s.%s[*]
 								RETURN 1
 							)
 						`,
-							str,
-							f.Value,
-							vert,
-							fmap[f.Field],
-						),
-					)
-				} else {
-					stmts.Insert(0,
-						fmt.Sprintf(`
-							LET %s = (
-								FILTER '%s' NOT IN %s.%s[*]
-								RETURN 1
-							)
-						`,
-							str,
-							f.Value,
-							doc,
-							fmap[f.Field],
-						),
-					)
-				}
+						str,
+						f.Value,
+						inner,
+						fmap[f.Field],
+					),
+				)
 			}
 			stmts.Add(fmt.Sprintf("LENGTH(%s) > 0", str))
 			// if there's logic, write that too
@@ -325,7 +281,7 @@ func GenAQLFilterStatement(p *StatementParameters) (string, error) {
 			// write time conversion into AQL query
 			stmts.Add(fmt.Sprintf(
 				"%s.%s %s DATE_ISO8601('%s')",
-				doc,
+				inner,
 				fmap[f.Field],
 				omap[f.Operator],
 				f.Value,
@@ -338,7 +294,7 @@ func GenAQLFilterStatement(p *StatementParameters) (string, error) {
 			stmts.Add(
 				fmt.Sprintf(
 					"%s.%s %s %s",
-					doc,
+					inner,
 					fmap[f.Field],
 					omap[f.Operator],
 					checkAndQuote(f.Operator, f.Value),
