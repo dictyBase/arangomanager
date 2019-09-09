@@ -343,7 +343,7 @@ func toString(l *arraylist.List) string {
 
 // check if operator is used for a string
 func checkAndQuote(op, value string) string {
-	if op == "===" || op == "!==" || op == "=~" || op == "!~" {
+	if op == "==" || op == "===" || op == "!=" || op == "~" || op == "!~" {
 		return fmt.Sprintf("'%s'", value)
 	}
 	return value
