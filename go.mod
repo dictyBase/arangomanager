@@ -11,5 +11,5 @@ require (
 	github.com/stretchr/testify v1.2.2
 	github.com/urfave/cli v1.22.1
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
-	gopkg.in/go-playground/validator.v9 v9.24.0
+	gopkg.in/go-playground/validator.v9 v9.30.0
 )
