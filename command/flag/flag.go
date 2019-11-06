@@ -1,7 +1,7 @@
 package flag
 
 import (
-	cli "gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli"
 )
 
 // ArangodbFlags returns the cli based flag slice that includes
