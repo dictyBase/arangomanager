@@ -168,8 +168,6 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	if x != nil {
 		t.Fatalf("invalid AQL query %s", x)
 	}
-	t.Log(n)
-
 	// test date equals
 	ds, err := ParseFilterString("created_at$==2019,created_at$==2018")
 	if err != nil {
@@ -185,8 +183,6 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	if xd != nil {
 		t.Fatalf("invalid AQL query %s", dn)
 	}
-	t.Log(dn)
-
 	// test item in array equals
 	as, err := ParseFilterString("sport@==basketball")
 	if err != nil {
@@ -201,8 +197,6 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	if xa != nil {
 		t.Fatalf("invalid AQL query %s", xa)
 	}
-	t.Log(an)
-
 	// test item substring in array
 	a, err := ParseFilterString("sport@=~basket")
 	if err != nil {
@@ -217,8 +211,6 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	if xaf != nil {
 		t.Fatalf("invalid AQL query %s", xaf)
 	}
-	t.Log(af)
-
 	// test item in array not equals
 	b, err := ParseFilterString("sport@!=banana,sport@!=apple")
 	if err != nil {
@@ -234,7 +226,6 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	if xb != nil {
 		t.Fatalf("invalid AQL query %s", xb)
 	}
-	t.Log(bf)
 }
 
 func genFullStmt(f string) string {
