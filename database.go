@@ -37,19 +37,7 @@ func (d *Database) SearchRows(query string, bindVars map[string]interface{}) (*R
 
 // Search query the database that is expected to return multiple rows of result
 func (d *Database) Search(query string) (*Resultset, error) {
-	// validate
-	if err := d.dbh.ValidateQuery(context.Background(), query); err != nil {
-		return &Resultset{empty: true}, fmt.Errorf("error in validating the query %s", err)
-	}
-	ctx := context.Background()
-	c, err := d.dbh.Query(ctx, query, nil)
-	if err != nil {
-		if driver.IsNotFound(err) {
-			return &Resultset{empty: true}, nil
-		}
-		return &Resultset{empty: true}, fmt.Errorf("error in doing query %s", err)
-	}
-	return &Resultset{cursor: c, ctx: ctx}, nil
+	return d.SearchRows(query, nil)
 }
 
 // CountWithParams query the database with bind parameters that is expected to
@@ -68,26 +56,13 @@ func (d *Database) CountWithParams(query string, bindVars map[string]interface{}
 
 // Count query the database that is expected to return count of result
 func (d *Database) Count(query string) (int64, error) {
-	// validate
-	if err := d.dbh.ValidateQuery(context.Background(), query); err != nil {
-		return 0, fmt.Errorf("error in validating the query %s", err)
-	}
-	c, err := d.dbh.Query(driver.WithQueryCount(context.Background(), true), query, nil)
-	if err != nil {
-		return 0, err
-	}
-	return c.Count(), nil
+	return d.CountWithParams(query, nil)
 }
 
 // Exec is to run data modification query that is not expected to return any
 // result
 func (d *Database) Exec(query string) error {
-	ctx := driver.WithSilent(context.Background())
-	_, err := d.dbh.Query(ctx, query, nil)
-	if err != nil {
-		return fmt.Errorf("error in data modification query %s", err)
-	}
-	return nil
+	return d.Do(query, nil)
 }
 
 // Do is to run data modification query with bind parameters that is not
@@ -101,12 +76,6 @@ func (d *Database) Do(query string, bindVars map[string]interface{}) error {
 	return nil
 }
 
-// DoRun is to run data modification query with bind parameters
-// that is expected to return a result. It is an alias for GetRow
-func (d *Database) DoRun(query string, bindVars map[string]interface{}) (*Result, error) {
-	return d.GetRow(query, bindVars)
-}
-
 // GetRow query the database with bind parameters that is expected to return
 // single row of result
 func (d *Database) GetRow(query string, bindVars map[string]interface{}) (*Result, error) {
@@ -117,20 +86,21 @@ func (d *Database) GetRow(query string, bindVars map[string]interface{}) (*Resul
 	return d.getResult(c, err)
 }
 
-// Run is to run data modification query that is expected to return a result
-// It is a convenient alias for Get method
-func (d *Database) Run(query string) (*Result, error) {
-	return d.Get(query)
+// DoRun is to run data modification query with bind parameters
+// that is expected to return a result. It is an alias for GetRow
+func (d *Database) DoRun(query string, bindVars map[string]interface{}) (*Result, error) {
+	return d.GetRow(query, bindVars)
 }
 
 // Get query the database to return single row of result
 func (d *Database) Get(query string) (*Result, error) {
-	// validate
-	if err := d.dbh.ValidateQuery(context.Background(), query); err != nil {
-		return &Result{empty: true}, fmt.Errorf("error in validating the query %s", err)
-	}
-	c, err := d.dbh.Query(context.Background(), query, nil)
-	return d.getResult(c, err)
+	return d.GetRow(query, nil)
+}
+
+// Run is to run data modification query that is expected to return a result
+// It is a convenient alias for Get method
+func (d *Database) Run(query string) (*Result, error) {
+	return d.GetRow(query, nil)
 }
 
 // Collection returns collection attached to current database
