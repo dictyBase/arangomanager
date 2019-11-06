@@ -14,7 +14,7 @@ type Database struct {
 
 // Handler returns the raw arangodb database handler
 func (d *Database) Handler() driver.Database {
-    return d.dbh 
+	return d.dbh
 }
 
 // SearchRows query the database with bind parameters that is expected to return
@@ -102,32 +102,9 @@ func (d *Database) Do(query string, bindVars map[string]interface{}) error {
 }
 
 // DoRun is to run data modification query with bind parameters
-// that is expected to return a result
+// that is expected to return a result. It is an alias for GetRow
 func (d *Database) DoRun(query string, bindVars map[string]interface{}) (*Result, error) {
-	// validate
-	if err := d.dbh.ValidateQuery(context.Background(), query); err != nil {
-		return &Result{empty: true}, fmt.Errorf("error in validating the query %s", err)
-	}
-	c, err := d.dbh.Query(context.Background(), query, bindVars)
-	if err != nil {
-		if driver.IsNotFound(err) {
-			return &Result{empty: true}, nil
-		}
-		if driver.IsNoMoreDocuments(err) {
-			return &Result{empty: true}, nil
-		}
-		return &Result{empty: true}, fmt.Errorf("error in data modification query %s", err)
-	}
-	if !c.HasMore() {
-		return &Result{empty: true}, nil
-	}
-	return &Result{cursor: c}, nil
-}
-
-// Run is to run data modification query that is expected to return a result
-// It is a convenient alias for Get method
-func (d *Database) Run(query string) (*Result, error) {
-	return d.Get(query)
+	return d.GetRow(query, bindVars)
 }
 
 // GetRow query the database with bind parameters that is expected to return
@@ -137,19 +114,13 @@ func (d *Database) GetRow(query string, bindVars map[string]interface{}) (*Resul
 		return &Result{empty: true}, fmt.Errorf("error in validating the query %s", err)
 	}
 	c, err := d.dbh.Query(context.Background(), query, bindVars)
-	if err != nil {
-		if driver.IsNotFound(err) {
-			return &Result{empty: true}, nil
-		}
-		if driver.IsNoMoreDocuments(err) {
-			return &Result{empty: true}, nil
-		}
-		return &Result{empty: true}, fmt.Errorf("error in get query %s", err)
-	}
-	if !c.HasMore() {
-		return &Result{empty: true}, nil
-	}
-	return &Result{cursor: c}, nil
+	return d.getResult(c, err)
+}
+
+// Run is to run data modification query that is expected to return a result
+// It is a convenient alias for Get method
+func (d *Database) Run(query string) (*Result, error) {
+	return d.Get(query)
 }
 
 // Get query the database to return single row of result
@@ -159,19 +130,7 @@ func (d *Database) Get(query string) (*Result, error) {
 		return &Result{empty: true}, fmt.Errorf("error in validating the query %s", err)
 	}
 	c, err := d.dbh.Query(context.Background(), query, nil)
-	if err != nil {
-		if driver.IsNotFound(err) {
-			return &Result{empty: true}, nil
-		}
-		if driver.IsNoMoreDocuments(err) {
-			return &Result{empty: true}, nil
-		}
-		return &Result{empty: true}, fmt.Errorf("error in get query %s", err)
-	}
-	if !c.HasMore() {
-		return &Result{empty: true}, nil
-	}
-	return &Result{cursor: c}, nil
+	return d.getResult(c, err)
 }
 
 // Collection returns collection attached to current database
@@ -243,4 +202,17 @@ func (d *Database) ValidateQ(q string) error {
 		return fmt.Errorf("error in validating the query %s", err)
 	}
 	return nil
+}
+
+func (d *Database) getResult(c driver.Cursor, err error) (*Result, error) {
+	if err != nil {
+		if driver.IsNotFound(err) || driver.IsNoMoreDocuments(err) {
+			return &Result{empty: true}, nil
+		}
+		return &Result{empty: true}, fmt.Errorf("error in query %s", err)
+	}
+	if !c.HasMore() {
+		return &Result{empty: true}, nil
+	}
+	return &Result{cursor: c}, nil
 }
