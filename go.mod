@@ -9,7 +9,7 @@ require (
 	github.com/jinzhu/now v0.0.0-20181116074157-8ec929ed50c3
 	github.com/leodido/go-urn v1.1.0 // indirect
 	github.com/stretchr/testify v1.2.2
+	github.com/urfave/cli v1.22.1
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/go-playground/validator.v9 v9.24.0
-	gopkg.in/urfave/cli.v1 v1.20.0
 )
