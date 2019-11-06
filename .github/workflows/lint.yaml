@@ -1,0 +1,13 @@
+name: Lint golang code 
+on: [pull_request]
+jobs:
+  lint:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: check out code
+        uses: actions/checkout@v1
+      - name: run linter
+        uses: reviewdog/action-golangci-lint@v1
+        with:
+          github_token: ${{ secrets.github_token }}
+          golangci_lint_flags: "-c .golangci.yml"
