@@ -201,20 +201,19 @@ func teardown(c driver.Collection, t *testing.T) {
 	}
 }
 
-func setup(db *Database, t *testing.T) (driver.Collection, error) {
+func setup(db *Database, t *testing.T) driver.Collection {
 	c, err := db.FindOrCreateCollection(randomString(10, 15), &driver.CreateCollectionOptions{})
 	if err != nil {
-		return c, err
+		t.Fatal(err)
 	}
-	err = loadTestData(c)
-	return c, err
+	if err = loadTestData(c); err != nil {
+		t.Fatal(err)
+	}
+	return c
 }
 
 func TestCount(t *testing.T) {
-	c, err := setup(adbh, t)
-	if err != nil {
-		t.Fatalf("error in setup %s", err)
-	}
+	c := setup(adbh, t)
 	defer teardown(c, t)
 	fc, err := adbh.Count(
 		fmt.Sprintf(genderCountS, c.Name(), "female"),
