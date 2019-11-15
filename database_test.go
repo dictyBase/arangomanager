@@ -81,3 +81,14 @@ func TestCollection(t *testing.T) {
 	assert.NoError(err, "not expect to return an error for existent collection")
 	assert.Equalf(c.Name(), nc.Name(), "expect %s, received %s", c.Name(), nc.Name())
 }
+
+func TestCreateCollection(t *testing.T) {
+	c := setup(adbh, t)
+	defer teardown(c, t)
+	_, err := adbh.CreateCollection(c.Name(), nil)
+	assert := assert.New(t)
+	assert.Error(err, "expect to return existing collection error")
+	nc, err := adbh.CreateCollection("bogus", nil)
+	assert.NoError(err, "not expect to return an error for existent collection")
+	assert.Equalf("bogus", nc.Name(), "expect %s, received %s", "bogus", nc.Name())
+}
