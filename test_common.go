@@ -18,12 +18,12 @@ import (
 )
 
 const (
-	genderCount = `
+	genderQ = `
 		FOR d IN @@collection 
 			FILTER d.gender == @gender
 			RETURN d
 	`
-	genderCountS = `
+	genderQNoParam = `
 		FOR d IN %s 
 			FILTER d.gender == '%s'
 			RETURN d
@@ -33,6 +33,29 @@ const (
 type testArango struct {
 	*ConnectParams
 	*Session
+}
+
+type testUserDb struct {
+	driver.DocumentMeta
+	Birthday *time.Time `json:"birthday"`
+	Contact  struct {
+		Address struct {
+			City   string `json:"city"`
+			State  string `json:"state"`
+			Street string `json:"street"`
+			Zip    string `json:"zip"`
+		} `json:"address"`
+		Email  []string `json:"email"`
+		Phone  []string `json:"phone"`
+		Region string   `json:"region"`
+	} `json:"contact"`
+	Gender      string     `json:"gender"`
+	Likes       []string   `json:"likes"`
+	MemberSince *time.Time `json:"memberSince"`
+	Name        struct {
+		First string `json:"first"`
+		Last  string `json:"last"`
+	} `json:"name"`
 }
 
 type testUser struct {
