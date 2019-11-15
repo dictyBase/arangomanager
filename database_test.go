@@ -84,3 +84,14 @@ func TestCountWithParams(t *testing.T) {
 	}
 	assert.Equalf(mc, int64(15), "expect %d received %d", 15, mc)
 }
+
+func TestCollection(t *testing.T) {
+	c := setup(adbh, t)
+	defer teardown(c, t)
+	_, err := adbh.Collection("bogus")
+	assert := assert.New(t)
+	assert.Error(err, "expect to return an error for an non-existent collection")
+	nc, err := adbh.Collection(c.Name())
+	assert.NoError(err, "not expect to return an error for existent collection")
+	assert.Equalf(c.Name(), nc.Name(), "expect %s, received %s", c.Name(), nc.Name())
+}
