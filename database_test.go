@@ -38,21 +38,12 @@ func TestMain(m *testing.M) {
 func TestCount(t *testing.T) {
 	c := setup(adbh, t)
 	defer teardown(c, t)
-	fc, err := adbh.Count(
-		fmt.Sprintf(genderCountS, c.Name(), "female"),
-	)
-	if err != nil {
-		t.Fatalf("error in running counting query %s", err)
-	}
+	fc, err := adbh.Count(fmt.Sprintf(genderCountS, c.Name(), "female"))
 	assert := assert.New(t)
+	assert.NoErrorf(err, "expect no error from counting query, received error %s", err)
 	assert.Equalf(fc, int64(15), "expect %d received %d", 15, fc)
-
-	mc, err := adbh.Count(
-		fmt.Sprintf(genderCountS, c.Name(), "male"),
-	)
-	if err != nil {
-		t.Fatalf("error in running counting query %s", err)
-	}
+	mc, err := adbh.Count(fmt.Sprintf(genderCountS, c.Name(), "male"))
+	assert.NoErrorf(err, "expect no error from counting query, received error %s", err)
 	assert.Equalf(mc, int64(15), "expect %d received %d", 15, mc)
 }
 
@@ -66,12 +57,9 @@ func TestCountWithParams(t *testing.T) {
 			"gender":      "female",
 		},
 	)
-	if err != nil {
-		t.Fatalf("error in running counting query %s", err)
-	}
 	assert := assert.New(t)
+	assert.NoErrorf(err, "expect no error from counting query, received error %s", err)
 	assert.Equalf(fc, int64(15), "expect %d received %d", 15, fc)
-
 	mc, err := adbh.CountWithParams(
 		genderCount,
 		map[string]interface{}{
@@ -79,9 +67,7 @@ func TestCountWithParams(t *testing.T) {
 			"gender":      "male",
 		},
 	)
-	if err != nil {
-		t.Fatalf("error in running counting query %s", err)
-	}
+	assert.NoErrorf(err, "expect no error, received error %s", err)
 	assert.Equalf(mc, int64(15), "expect %d received %d", 15, mc)
 }
 
