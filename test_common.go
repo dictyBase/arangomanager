@@ -34,6 +34,23 @@ const (
 			FILTER d.name.last == @last
 			RETURN d
 	`
+	userIns = `
+		INSERT {
+			name: {
+				first: @first,
+				last: @last
+			},
+			gender: @gender,
+			contact: {
+				region: @region,
+				address: {
+					city: @city,
+					state: @state,
+					zip: @zip
+				}
+			}
+		} INTO %s
+	`
 )
 
 type testArango struct {

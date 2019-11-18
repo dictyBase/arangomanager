@@ -144,6 +144,26 @@ func TestSearchRows(t *testing.T) {
 	testSearchRsNoRow(wrs, err, t)
 }
 
+func TestDo(t *testing.T) {
+	t.Parallel()
+	c := setup(adbh, t)
+	defer teardown(c, t)
+	err := adbh.Do(
+		fmt.Sprintf(userIns, c.Name()),
+		map[string]interface{}{
+			"first":  "Chitkini",
+			"last":   "Dey",
+			"gender": "male",
+			"region": "gram",
+			"city":   "porgona",
+			"state":  "wb",
+			"zip":    "48943",
+		},
+	)
+	assert := assert.New(t)
+	assert.NoErrorf(err, "expect no error from insert query, received error %s", err)
+}
+
 func TestGetRow(t *testing.T) {
 	t.Parallel()
 	c := setup(adbh, t)
