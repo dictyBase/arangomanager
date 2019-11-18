@@ -112,7 +112,7 @@ func TestFindOrCreateCollection(t *testing.T) {
 	assert.Equalf(ncoll, nc.Name(), "expect %s, received %s", "bogus", nc.Name())
 }
 
-func TestSearchRows(t *testing.T) {
+func TestSearchRowsWithParams(t *testing.T) {
 	t.Parallel()
 	c := setup(adbh, t)
 	defer teardown(c, t)
@@ -124,7 +124,7 @@ func TestSearchRows(t *testing.T) {
 		},
 	)
 	assert := assert.New(t)
-	assert.NoErrorf(err, "expect no error from counting query, received error %s", err)
+	assert.NoErrorf(err, "expect no error from search query, received error %s", err)
 	assert.False(frs.IsEmpty(), "expect resultset to be not empty")
 	for i := 0; i < 15; i++ {
 		assert.True(frs.Scan(), "expect scanning of record")
@@ -133,4 +133,13 @@ func TestSearchRows(t *testing.T) {
 		assert.NoError(err, "expect no error from reading the data")
 		assert.Equal(u.Gender, "female", "expect gender to be female")
 	}
+	wrs, err := adbh.SearchRows(
+		genderQ,
+		map[string]interface{}{
+			"@collection": c.Name(),
+			"gender":      "wakanda",
+		},
+	)
+	assert.NoErrorf(err, "expect no error from search query, received error %s", err)
+	assert.True(wrs.IsEmpty(), "expect emtpy resultset")
 }
