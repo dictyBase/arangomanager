@@ -194,7 +194,7 @@ func TestGetRow(t *testing.T) {
 		},
 	)
 	assert.NoErrorf(err, "expect no error from row query, received error %s", err)
-	assert.True(er.IsEmpty(), "expect emtpy resultset")
+	assert.True(er.IsEmpty(), "expect empty resultset")
 }
 
 func testAllRows(rs *Resultset, assert *assert.Assertions, count int) {
@@ -217,5 +217,5 @@ func testSearchRs(rs *Resultset, err error, t *testing.T) {
 func testSearchRsNoRow(rs *Resultset, err error, t *testing.T) {
 	assert := assert.New(t)
 	assert.NoErrorf(err, "expect no error from search query, received error %s", err)
-	assert.True(rs.IsEmpty(), "expect emtpy resultset")
+	assert.True(rs.IsEmpty(), "expect empty resultset")
 }
