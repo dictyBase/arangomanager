@@ -148,20 +148,33 @@ func TestGetRow(t *testing.T) {
 	t.Parallel()
 	c := setup(adbh, t)
 	defer teardown(c, t)
-	frs, err := adbh.Search(fmt.Sprintf(genderQNoParam, c.Name(), "female"))
+	r, err := adbh.GetRow(
+		userQ,
+		map[string]interface{}{
+			"@collection": c.Name(),
+			"first":       "Mickie",
+			"last":        "Menchaca",
+		},
+	)
 	assert := assert.New(t)
 	assert.NoErrorf(err, "expect no error from search query, received error %s", err)
-	assert.False(frs.IsEmpty(), "expect resultset to be not empty")
-	for i := 0; i < 15; i++ {
-		assert.True(frs.Scan(), "expect scanning of record")
-		var u testUserDb
-		err := frs.Read(&u)
-		assert.NoError(err, "expect no error from reading the data")
-		assert.Equal(u.Gender, "female", "expect gender to be female")
-	}
-	wrs, err := adbh.Search(fmt.Sprintf(genderQNoParam, c.Name(), "wakanda"))
-	assert.NoErrorf(err, "expect no error from search query, received error %s", err)
-	assert.True(wrs.IsEmpty(), "expect emtpy resultset")
+	assert.False(r.IsEmpty(), "expect result to be not empty")
+	var u testUserDb
+	err = r.Read(&u)
+	assert.NoError(err, "expect no error from reading the data")
+	assert.Equal(u.Gender, "female", "expect gender to be female")
+	assert.Equal(u.Contact.Address.City, "Beachwood", "should match city Beachwood")
+	assert.Equal(u.Contact.Region, "732", "should match region 732")
+	er, err := adbh.GetRow(
+		userQ,
+		map[string]interface{}{
+			"@collection": c.Name(),
+			"first":       "Pantu",
+			"last":        "Boka",
+		},
+	)
+	assert.NoErrorf(err, "expect no error from row query, received error %s", err)
+	assert.True(er.IsEmpty(), "expect emtpy resultset")
 }
 
 func testAllRows(rs *Resultset, assert *assert.Assertions, count int) {
