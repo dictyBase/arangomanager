@@ -123,16 +123,7 @@ func TestSearchRowsWithParams(t *testing.T) {
 			"gender":      "female",
 		},
 	)
-	assert := assert.New(t)
-	assert.NoErrorf(err, "expect no error from search query, received error %s", err)
-	assert.False(frs.IsEmpty(), "expect resultset to be not empty")
-	for i := 0; i < 15; i++ {
-		assert.True(frs.Scan(), "expect scanning of record")
-		var u testUserDb
-		err := frs.Read(&u)
-		assert.NoError(err, "expect no error from reading the data")
-		assert.Equal(u.Gender, "female", "expect gender to be female")
-	}
+	testSearchRs(frs, err, t)
 	wrs, err := adbh.SearchRows(
 		genderQ,
 		map[string]interface{}{
@@ -140,11 +131,20 @@ func TestSearchRowsWithParams(t *testing.T) {
 			"gender":      "wakanda",
 		},
 	)
-	assert.NoErrorf(err, "expect no error from search query, received error %s", err)
-	assert.True(wrs.IsEmpty(), "expect emtpy resultset")
+	testSearchRsNoRow(wrs, err, t)
 }
 
 func TestSearchRows(t *testing.T) {
+	t.Parallel()
+	c := setup(adbh, t)
+	defer teardown(c, t)
+	frs, err := adbh.Search(fmt.Sprintf(genderQNoParam, c.Name(), "female"))
+	testSearchRs(frs, err, t)
+	wrs, err := adbh.Search(fmt.Sprintf(genderQNoParam, c.Name(), "wakanda"))
+	testSearchRsNoRow(wrs, err, t)
+}
+
+func TestGetRow(t *testing.T) {
 	t.Parallel()
 	c := setup(adbh, t)
 	defer teardown(c, t)
@@ -162,4 +162,27 @@ func TestSearchRows(t *testing.T) {
 	wrs, err := adbh.Search(fmt.Sprintf(genderQNoParam, c.Name(), "wakanda"))
 	assert.NoErrorf(err, "expect no error from search query, received error %s", err)
 	assert.True(wrs.IsEmpty(), "expect emtpy resultset")
+}
+
+func testAllRows(rs *Resultset, assert *assert.Assertions, count int) {
+	for i := 0; i < count; i++ {
+		assert.True(rs.Scan(), "expect scanning of record")
+		var u testUserDb
+		err := rs.Read(&u)
+		assert.NoError(err, "expect no error from reading the data")
+		assert.Equal(u.Gender, "female", "expect gender to be female")
+	}
+}
+
+func testSearchRs(rs *Resultset, err error, t *testing.T) {
+	assert := assert.New(t)
+	assert.NoErrorf(err, "expect no error from search query, received error %s", err)
+	assert.False(rs.IsEmpty(), "expect resultset to be not empty")
+	testAllRows(rs, assert, 15)
+}
+
+func testSearchRsNoRow(rs *Resultset, err error, t *testing.T) {
+	assert := assert.New(t)
+	assert.NoErrorf(err, "expect no error from search query, received error %s", err)
+	assert.True(rs.IsEmpty(), "expect emtpy resultset")
 }
