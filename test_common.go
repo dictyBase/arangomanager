@@ -28,6 +28,12 @@ const (
 			FILTER d.gender == '%s'
 			RETURN d
 	`
+	userQ = `
+		FOR d in @@collection 
+			FILTER d.name.first == @first
+			FILTER d.name.last == @last
+			RETURN d
+	`
 )
 
 type testArango struct {
