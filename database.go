@@ -27,10 +27,10 @@ func (d *Database) SearchRows(query string, bindVars map[string]interface{}) (*R
 	ctx := context.Background()
 	c, err := d.dbh.Query(ctx, query, bindVars)
 	if err != nil {
-		if driver.IsNotFound(err) {
-			return &Resultset{empty: true}, nil
-		}
-		return &Resultset{empty: true}, fmt.Errorf("error in doing query %s", err)
+		return &Resultset{empty: true}, fmt.Errorf("error in running search %s", err)
+	}
+	if !c.HasMore() {
+		return &Resultset{empty: true}, nil
 	}
 	return &Resultset{cursor: c, ctx: ctx}, nil
 }
@@ -176,9 +176,6 @@ func (d *Database) ValidateQ(q string) error {
 
 func (d *Database) getResult(c driver.Cursor, err error) (*Result, error) {
 	if err != nil {
-		if driver.IsNotFound(err) || driver.IsNoMoreDocuments(err) {
-			return &Result{empty: true}, nil
-		}
 		return &Result{empty: true}, fmt.Errorf("error in query %s", err)
 	}
 	if !c.HasMore() {
