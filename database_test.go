@@ -143,3 +143,23 @@ func TestSearchRowsWithParams(t *testing.T) {
 	assert.NoErrorf(err, "expect no error from search query, received error %s", err)
 	assert.True(wrs.IsEmpty(), "expect emtpy resultset")
 }
+
+func TestSearchRows(t *testing.T) {
+	t.Parallel()
+	c := setup(adbh, t)
+	defer teardown(c, t)
+	frs, err := adbh.Search(fmt.Sprintf(genderQNoParam, c.Name(), "female"))
+	assert := assert.New(t)
+	assert.NoErrorf(err, "expect no error from search query, received error %s", err)
+	assert.False(frs.IsEmpty(), "expect resultset to be not empty")
+	for i := 0; i < 15; i++ {
+		assert.True(frs.Scan(), "expect scanning of record")
+		var u testUserDb
+		err := frs.Read(&u)
+		assert.NoError(err, "expect no error from reading the data")
+		assert.Equal(u.Gender, "female", "expect gender to be female")
+	}
+	wrs, err := adbh.Search(fmt.Sprintf(genderQNoParam, c.Name(), "wakanda"))
+	assert.NoErrorf(err, "expect no error from search query, received error %s", err)
+	assert.True(wrs.IsEmpty(), "expect emtpy resultset")
+}
