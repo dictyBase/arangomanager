@@ -24,7 +24,7 @@ jobs:
       - name: check out code
         uses: actions/checkout@v1
       - name: unit test
-        run: go test -covermode=atomic -coverprofile=profile.cov -v ./...
+        run: go test -covermode=atomic -coverprofile=profile.cov -cpu 4 -v ./...
         env:
           GOPROXY: https://proxy.golang.org
           ARANGO_USER: root
