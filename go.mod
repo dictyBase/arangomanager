@@ -1,7 +1,9 @@
 module github.com/dictyBase/arangomanager
 
 require (
-	github.com/arangodb/go-driver v0.0.0-20181206080103-b1a864427d13
+	github.com/arangodb/go-driver v0.0.0-20191107140416-095263e288cd
+	github.com/arangodb/go-velocypack v0.0.0-20190507125159-f60205f092de // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/emirpasic/gods v1.12.0
 	github.com/fatih/structs v1.1.0
 	github.com/go-playground/locales v0.12.1 // indirect
