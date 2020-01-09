@@ -27,19 +27,22 @@ var qmap = map[string]string{
 var gta *testarango.TestArango
 
 func TestParseFilterString(t *testing.T) {
-	s, err := ParseFilterString("sport===football;email===mahomes@gmail.com")
-	if err != nil {
-		t.Fatalf("error in parsing filter string %s", err)
-	}
-
 	assert := assert.New(t)
-	assert.Equal(len(s), 2, "should match length of two items in filter array")
+	s, err := ParseFilterString("sport===football;email===mahomes@gmail.com")
+	assert.NoError(err, "should not return any parse error")
+	assert.Len(s, 2, "should match length of two items in filter array")
+	assert.Equal(s[0].Value, "football", "should match the sport query")
+	assert.Equal(s[1].Value, "mahomes@gmail.com", "should match the email query")
 
 	b, err := ParseFilterString("xyz")
-	if err != nil {
-		t.Fatalf("error in parsing filter string %s", err)
-	}
-	assert.Equal(len(b), 0, "should have empty slice since regex doesn't match string")
+	assert.NoError(err, "should not return any parse error")
+	assert.Len(b, 0, "should have empty slice since regex doesn't match string")
+
+	b2, err := ParseFilterString("ontology!~dicty annotation;tag~logicx")
+	assert.NoError(err, "should not return any parse error")
+	assert.Len(b2, 2, "should have two items in filter array")
+	assert.Equal(b2[0].Value, "dicty annotation", "should match ontology query")
+	assert.Equal(b2[1].Value, "logicx", "should match tag query")
 }
 
 func TestGenQualifiedAQLFilterStatement(t *testing.T) {
