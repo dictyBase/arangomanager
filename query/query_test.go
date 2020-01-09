@@ -33,16 +33,28 @@ func TestParseFilterString(t *testing.T) {
 	assert.Len(s, 2, "should match length of two items in filter array")
 	assert.Equal(s[0].Value, "football", "should match the sport query")
 	assert.Equal(s[1].Value, "mahomes@gmail.com", "should match the email query")
-
-	b, err := ParseFilterString("xyz")
-	assert.NoError(err, "should not return any parse error")
-	assert.Len(b, 0, "should have empty slice since regex doesn't match string")
+	assert.Equal(s[0].Field, "sport", "should match field sport")
+	assert.Equal(s[1].Field, "email", "should match fieldi email")
+	assert.Equal(s[0].Operator, "===", "should match equal operator")
+	assert.Equal(s[1].Operator, "===", "should match equal operator")
+	assert.Equal(s[0].Logic, ";", "should have parsed colon logic")
+	assert.Empty(s[1].Logic, "should have empty logic value")
 
 	b2, err := ParseFilterString("ontology!~dicty annotation;tag~logicx")
 	assert.NoError(err, "should not return any parse error")
 	assert.Len(b2, 2, "should have two items in filter array")
 	assert.Equal(b2[0].Value, "dicty annotation", "should match ontology query")
 	assert.Equal(b2[1].Value, "logicx", "should match tag query")
+	assert.Equal(b2[0].Field, "ontology", "should match field ontology")
+	assert.Equal(b2[1].Field, "tag", "should match field annotation")
+	assert.Equal(b2[0].Operator, "!~", "should match regexp match operator")
+	assert.Equal(b2[1].Operator, "~", "should match regexp negation operator")
+	assert.Equal(b2[0].Logic, ";", "should have parsed colon logic")
+	assert.Empty(b2[1].Logic, "should have empty logic value")
+
+	b, err := ParseFilterString("xyz")
+	assert.NoError(err, "should not return any parse error")
+	assert.Len(b, 0, "should have empty slice since regex doesn't match string")
 }
 
 func TestGenQualifiedAQLFilterStatement(t *testing.T) {
