@@ -11,13 +11,6 @@ import (
 	"github.com/jinzhu/now"
 )
 
-// regex to capture all variations of filter string
-var qre = regexp.MustCompile(`(\w+)(\=\=|\!\=|\=\=\=|\!\=\=|\=\~|\!\~|>|<|>\=|\=<|\$\=\=|\$\>|\$\>\=|\$\<|\$\<\=|\@\=\=|\@\!\=|\@\!\~|\@\=\~)([\w-@.\s]+)(\,|\;)?`)
-
-// regex to capture all variations of date string
-// https://play.golang.org/p/NzeBmlQh13v
-var dre = regexp.MustCompile(`^\d{4}\-(0[1-9]|1[012])$|^\d{4}$|^\d{4}\-(0[1-9]|1[012])\-(0[1-9]|[12][0-9]|3[01])$`)
-
 var arrToAQL = map[string]string{
 	"==": "IN",
 	"!=": "NOT IN",
@@ -45,6 +38,30 @@ type StatementParameters struct {
 	Doc string
 	// The variable used for looping inside a graph (i.e. the "v" in "FOR v IN 1..1 OUTBOUND s GRAPH 'xyz'")
 	Vert string
+}
+
+//buildFilter regex to capture all variations of filter string
+func buildFilter() (*regexp.Regexp, error) {
+	var b strings.Builder
+	b.WriteString(`(\w+)`)
+	b.WriteString(`(\=\=|\!\=|\=\=\=|\!\=\=|`)
+	b.WriteString(`\=\~|\!\~|>|<|>\=|`)
+	b.WriteString(`\=<|\$\=\=|\$\>|`)
+	b.WriteString(`\$\>\=|\$\<|\$\<\=|`)
+	b.WriteString(`\@\=\=|\@\!\=|`)
+	b.WriteString(`\@\!\~|\@\=\~)`)
+	b.WriteString(`([\w-@.\s]+)(\,|\;)?`)
+	return regexp.Compile(b.String())
+}
+
+// buildDate builds a regex to capture all variations of date string
+// https://play.golang.org/p/NzeBmlQh13v
+func buildDate() (*regexp.Regexp, error) {
+	var b strings.Builder
+	b.WriteString(`^\d{4}\-(0[1-9]|1[012])$|`)
+	b.WriteString(`^\d{4}$|^\d{4}\-(0[1-9]|`)
+	b.WriteString(`1[012])\-(0[1-9]|[12][0-9]|3[01])$`)
+	return regexp.Compile(b.String())
 }
 
 func getOperatorMap() map[string]string {
@@ -96,6 +113,10 @@ func getArrayOperatorMap() map[string]string {
 // corresponding protocol buffer definition.
 func ParseFilterString(fstr string) ([]*Filter, error) {
 	var filters []*Filter
+	qre, err := buildFilter()
+	if err != nil {
+		return filters, err
+	}
 	m := qre.FindAllStringSubmatch(fstr, -1)
 	if len(m) == 0 {
 		return filters, nil
@@ -351,6 +372,10 @@ func checkAndQuote(op, value string) string {
 
 func dateValidator(s string) error {
 	// get all regex matches for date
+	dre, err := buildDate()
+	if err != nil {
+		return err
+	}
 	m := dre.FindString(s)
 	if len(m) == 0 {
 		return fmt.Errorf("error in validating date %s", s)
