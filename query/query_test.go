@@ -40,7 +40,7 @@ func TestParseFilterString(t *testing.T) {
 	assert.Equal(s[0].Logic, ";", "should have parsed colon logic")
 	assert.Empty(s[1].Logic, "should have empty logic value")
 
-	b2, err := ParseFilterString("ontology!~dicty annotation;tag~logicx")
+	b2, err := ParseFilterString("ontology!~dicty annotation;tag=~logicx")
 	assert.NoError(err, "should not return any parse error")
 	assert.Len(b2, 2, "should have two items in filter array")
 	assert.Equal(b2[0].Value, "dicty annotation", "should match ontology query")
@@ -48,7 +48,7 @@ func TestParseFilterString(t *testing.T) {
 	assert.Equal(b2[0].Field, "ontology", "should match field ontology")
 	assert.Equal(b2[1].Field, "tag", "should match field annotation")
 	assert.Equal(b2[0].Operator, "!~", "should match regexp match operator")
-	assert.Equal(b2[1].Operator, "~", "should match regexp negation operator")
+	assert.Equal(b2[1].Operator, "=~", "should match regexp negation operator")
 	assert.Equal(b2[0].Logic, ";", "should have parsed colon logic")
 	assert.Empty(b2[1].Logic, "should have empty logic value")
 

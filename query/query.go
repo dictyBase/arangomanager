@@ -12,7 +12,7 @@ import (
 )
 
 // regex to capture all variations of filter string
-var qre = regexp.MustCompile(`(\w+)(\=\=|\!\=|\=\=\=|\!\=\=|\~|\!\~|>|<|>\=|\=<|\$\=\=|\$\>|\$\>\=|\$\<|\$\<\=|\@\=\=|\@\!\=|\@\!\~|\@\~)([\w-@.\s]+)(\,|\;)?`)
+var qre = regexp.MustCompile(`(\w+)(\=\=|\!\=|\=\=\=|\!\=\=|\=\~|\!\~|>|<|>\=|\=<|\$\=\=|\$\>|\$\>\=|\$\<|\$\<\=|\@\=\=|\@\!\=|\@\!\~|\@\=\~)([\w-@.\s]+)(\,|\;)?`)
 
 // regex to capture all variations of date string
 // https://play.golang.org/p/NzeBmlQh13v
@@ -56,7 +56,7 @@ func getOperatorMap() map[string]string {
 		"<":   "<",
 		">=":  ">=",
 		"<=":  "<=",
-		"~":   "=~",
+		"=~":  "=~",
 		"!~":  "!~",
 		"$==": "==",
 		"$>":  ">",
@@ -64,7 +64,7 @@ func getOperatorMap() map[string]string {
 		"$>=": ">=",
 		"$<=": "<=",
 		"@==": "==",
-		"@~":  "=~",
+		"@=~": "=~",
 		"@!~": "!~",
 		"@!=": "!=",
 	}
