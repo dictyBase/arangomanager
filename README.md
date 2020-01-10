@@ -5,7 +5,7 @@
 [![codecov](https://codecov.io/gh/dictyBase/arangomanager/branch/develop/graph/badge.svg)](https://codecov.io/gh/dictyBase/arangomanager)   
 [![Technical debt](https://badgen.net/codeclimate/tech-debt/dictyBase/arangomanager)](https://codeclimate.com/github/dictyBase/arangomanager/trends/technical_debt)
 [![Issues](https://badgen.net/codeclimate/issues/dictyBase/arangomanager)](https://codeclimate.com/github/dictyBase/arangomanager/issues)
-[![Maintainability percentage](https://badgen.net/codeclimate/maintainability-percentage/dictyBase/arangomanager)](https://codeclimate.com/github/dictyBase/arangomanager)
+[![Maintainability](https://api.codeclimate.com/v1/badges/63686238089c642c04f2/maintainability)](https://codeclimate.com/github/dictyBase/arangomanager/maintainability)
 [![Dependabot Status](https://api.dependabot.com/badges/status?host=github&repo=dictyBase/arangomanager)](https://dependabot.com)   
 ![Issues](https://badgen.net/github/issues/dictyBase/arangomanager)
 ![Open Issues](https://badgen.net/github/open-issues/dictyBase/arangomanager)
