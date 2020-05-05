@@ -161,14 +161,14 @@ func (d *Database) FindOrCreateGraph(name string, defs []driver.EdgeDefinition) 
 	)
 }
 
-// FindOrCreatePersistentIndex finds or creates a persistent index on a specified collection
-func (d *Database) FindOrCreatePersistentIndex(collection string, fields []string, options *driver.EnsurePersistentIndexOptions) (driver.Index, bool, error) {
+// EnsurePersistentIndex finds or creates a persistent index on a specified collection
+func (d *Database) EnsurePersistentIndex(coll string, fields []string, opts *driver.EnsurePersistentIndexOptions) (driver.Index, bool, error) {
 	var i driver.Index
-	coll, err := d.Collection(collection)
+	c, err := d.Collection(coll)
 	if err != nil {
-		return i, false, fmt.Errorf("unable to check for collection %s", collection)
+		return i, false, fmt.Errorf("unable to check for collection %s", coll)
 	}
-	return coll.EnsurePersistentIndex(context.Background(), fields, options)
+	return c.EnsurePersistentIndex(context.Background(), fields, opts)
 }
 
 // Drop removes the database
