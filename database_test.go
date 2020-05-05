@@ -118,10 +118,16 @@ func TestEnsurePersistentIndex(t *testing.T) {
 	c := setup(adbh, t)
 	defer teardown(c, t)
 	assert := assert.New(t)
-	index, b, err := adbh.EnsurePersistentIndex(c.Name(), []string{"entry_id"}, &driver.EnsurePersistentIndexOptions{})
+	name := "entry_id"
+	index, b, err := adbh.EnsurePersistentIndex(c.Name(), []string{"entry_id"}, &driver.EnsurePersistentIndexOptions{
+		Name: name,
+	})
 	assert.NoError(err, "should not return error for index method")
 	assert.True(b, "should create index")
 	assert.Exactly(index.Type(), driver.PersistentIndex, "should return persistent index type")
+	assert.Exactly(index.UserName(), name, "should match provided name option")
+	_, _, err = adbh.EnsurePersistentIndex("wrong name", []string{"entry_id"}, &driver.EnsurePersistentIndexOptions{})
+	assert.Error(err, "should return error for wrong collection name")
 }
 
 func TestSearchRowsWithParams(t *testing.T) {
