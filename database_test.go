@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"testing"
 
+	driver "github.com/arangodb/go-driver"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -110,6 +111,17 @@ func TestFindOrCreateCollection(t *testing.T) {
 	nc, err := adbh.FindOrCreateCollection(ncoll, nil)
 	assert.NoError(err, "not expect to return an error for existent collection")
 	assert.Equalf(ncoll, nc.Name(), "expect %s, received %s", "bogus", nc.Name())
+}
+
+func TestEnsurePersistentIndex(t *testing.T) {
+	t.Parallel()
+	c := setup(adbh, t)
+	defer teardown(c, t)
+	assert := assert.New(t)
+	index, b, err := adbh.EnsurePersistentIndex(c.Name(), []string{"entry_id"}, &driver.EnsurePersistentIndexOptions{})
+	assert.NoError(err, "should not return error for index method")
+	assert.True(b, "should create index")
+	assert.Exactly(index.Type(), driver.PersistentIndex, "should return persistent index type")
 }
 
 func TestSearchRowsWithParams(t *testing.T) {
