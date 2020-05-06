@@ -113,6 +113,57 @@ func TestFindOrCreateCollection(t *testing.T) {
 	assert.Equalf(ncoll, nc.Name(), "expect %s, received %s", "bogus", nc.Name())
 }
 
+func TestEnsureFullTextIndex(t *testing.T) {
+	t.Parallel()
+	c := setup(adbh, t)
+	defer teardown(c, t)
+	assert := assert.New(t)
+	name := "entry_id"
+	index, b, err := adbh.EnsureFullTextIndex(c.Name(), []string{"entry_id"}, &driver.EnsureFullTextIndexOptions{
+		Name: name,
+	})
+	assert.NoError(err, "should not return error for full text index method")
+	assert.True(b, "should create full text index")
+	assert.Exactly(index.Type(), driver.FullTextIndex, "should return full text index type")
+	assert.Exactly(index.UserName(), name, "should match provided name option")
+	_, _, err = adbh.EnsureFullTextIndex("wrong name", []string{"entry_id"}, &driver.EnsureFullTextIndexOptions{})
+	assert.Error(err, "should return error for wrong collection name")
+}
+
+func TestEnsureGeoIndex(t *testing.T) {
+	t.Parallel()
+	c := setup(adbh, t)
+	defer teardown(c, t)
+	assert := assert.New(t)
+	name := "entry_id"
+	index, b, err := adbh.EnsureGeoIndex(c.Name(), []string{"entry_id"}, &driver.EnsureGeoIndexOptions{
+		Name: name,
+	})
+	assert.NoError(err, "should not return error for geo index method")
+	assert.True(b, "should create geo index")
+	assert.Exactly(index.Type(), driver.GeoIndex, "should return geo index type")
+	assert.Exactly(index.UserName(), name, "should match provided name option")
+	_, _, err = adbh.EnsureGeoIndex("wrong name", []string{"entry_id"}, &driver.EnsureGeoIndexOptions{})
+	assert.Error(err, "should return error for wrong collection name")
+}
+
+func TestEnsureHashIndex(t *testing.T) {
+	t.Parallel()
+	c := setup(adbh, t)
+	defer teardown(c, t)
+	assert := assert.New(t)
+	name := "entry_id"
+	index, b, err := adbh.EnsureHashIndex(c.Name(), []string{"entry_id"}, &driver.EnsureHashIndexOptions{
+		Name: name,
+	})
+	assert.NoError(err, "should not return error for hash index method")
+	assert.True(b, "should create hash index")
+	assert.Exactly(index.Type(), driver.HashIndex, "should return hash index type")
+	assert.Exactly(index.UserName(), name, "should match provided name option")
+	_, _, err = adbh.EnsureHashIndex("wrong name", []string{"entry_id"}, &driver.EnsureHashIndexOptions{})
+	assert.Error(err, "should return error for wrong collection name")
+}
+
 func TestEnsurePersistentIndex(t *testing.T) {
 	t.Parallel()
 	c := setup(adbh, t)
@@ -127,6 +178,23 @@ func TestEnsurePersistentIndex(t *testing.T) {
 	assert.Exactly(index.Type(), driver.PersistentIndex, "should return persistent index type")
 	assert.Exactly(index.UserName(), name, "should match provided name option")
 	_, _, err = adbh.EnsurePersistentIndex("wrong name", []string{"entry_id"}, &driver.EnsurePersistentIndexOptions{})
+	assert.Error(err, "should return error for wrong collection name")
+}
+
+func TestEnsureSkipListIndex(t *testing.T) {
+	t.Parallel()
+	c := setup(adbh, t)
+	defer teardown(c, t)
+	assert := assert.New(t)
+	name := "entry_id"
+	index, b, err := adbh.EnsureSkipListIndex(c.Name(), []string{"entry_id"}, &driver.EnsureSkipListIndexOptions{
+		Name: name,
+	})
+	assert.NoError(err, "should not return error for skip list index method")
+	assert.True(b, "should create skip list index")
+	assert.Exactly(index.Type(), driver.SkipListIndex, "should return skip list index type")
+	assert.Exactly(index.UserName(), name, "should match provided name option")
+	_, _, err = adbh.EnsureSkipListIndex("wrong name", []string{"entry_id"}, &driver.EnsureSkipListIndexOptions{})
 	assert.Error(err, "should return error for wrong collection name")
 }
 
