@@ -161,6 +161,36 @@ func (d *Database) FindOrCreateGraph(name string, defs []driver.EdgeDefinition) 
 	)
 }
 
+// EnsureFullTextIndex finds or creates a full text index on a specified collection
+func (d *Database) EnsureFullTextIndex(coll string, fields []string, opts *driver.EnsureFullTextIndexOptions) (driver.Index, bool, error) {
+	var i driver.Index
+	c, err := d.Collection(coll)
+	if err != nil {
+		return i, false, fmt.Errorf("unable to check for collection %s", coll)
+	}
+	return c.EnsureFullTextIndex(context.Background(), fields, opts)
+}
+
+// EnsureGeoIndex finds or creates a geo index on a specified collection
+func (d *Database) EnsureGeoIndex(coll string, fields []string, opts *driver.EnsureGeoIndexOptions) (driver.Index, bool, error) {
+	var i driver.Index
+	c, err := d.Collection(coll)
+	if err != nil {
+		return i, false, fmt.Errorf("unable to check for collection %s", coll)
+	}
+	return c.EnsureGeoIndex(context.Background(), fields, opts)
+}
+
+// EnsureHashIndex finds or creates a hash index on a specified collection
+func (d *Database) EnsureHashIndex(coll string, fields []string, opts *driver.EnsureHashIndexOptions) (driver.Index, bool, error) {
+	var i driver.Index
+	c, err := d.Collection(coll)
+	if err != nil {
+		return i, false, fmt.Errorf("unable to check for collection %s", coll)
+	}
+	return c.EnsureHashIndex(context.Background(), fields, opts)
+}
+
 // EnsurePersistentIndex finds or creates a persistent index on a specified collection
 func (d *Database) EnsurePersistentIndex(coll string, fields []string, opts *driver.EnsurePersistentIndexOptions) (driver.Index, bool, error) {
 	var i driver.Index
@@ -169,6 +199,16 @@ func (d *Database) EnsurePersistentIndex(coll string, fields []string, opts *dri
 		return i, false, fmt.Errorf("unable to check for collection %s", coll)
 	}
 	return c.EnsurePersistentIndex(context.Background(), fields, opts)
+}
+
+// EnsureSkipListIndex finds or creates a skip list index on a specified collection
+func (d *Database) EnsureSkipListIndex(coll string, fields []string, opts *driver.EnsureSkipListIndexOptions) (driver.Index, bool, error) {
+	var i driver.Index
+	c, err := d.Collection(coll)
+	if err != nil {
+		return i, false, fmt.Errorf("unable to check for collection %s", coll)
+	}
+	return c.EnsureSkipListIndex(context.Background(), fields, opts)
 }
 
 // Drop removes the database
