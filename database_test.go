@@ -118,7 +118,7 @@ func TestEnsureFullTextIndex(t *testing.T) {
 	c := setup(adbh, t)
 	defer teardown(c, t)
 	assert := assert.New(t)
-	name := "entry_id"
+	name := "group"
 	index, b, err := adbh.EnsureFullTextIndex(c.Name(), []string{name}, &driver.EnsureFullTextIndexOptions{
 		Name: name,
 	})
@@ -135,7 +135,7 @@ func TestEnsureGeoIndex(t *testing.T) {
 	c := setup(adbh, t)
 	defer teardown(c, t)
 	assert := assert.New(t)
-	name := "entry_id"
+	name := "value"
 	index, b, err := adbh.EnsureGeoIndex(c.Name(), []string{name}, &driver.EnsureGeoIndexOptions{
 		Name: name,
 	})
@@ -186,7 +186,7 @@ func TestEnsureSkipListIndex(t *testing.T) {
 	c := setup(adbh, t)
 	defer teardown(c, t)
 	assert := assert.New(t)
-	name := "entry_id"
+	name := "created_at"
 	index, b, err := adbh.EnsureSkipListIndex(c.Name(), []string{name}, &driver.EnsureSkipListIndexOptions{
 		Name: name,
 	})
