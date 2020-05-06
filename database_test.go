@@ -119,14 +119,14 @@ func TestEnsureFullTextIndex(t *testing.T) {
 	defer teardown(c, t)
 	assert := assert.New(t)
 	name := "entry_id"
-	index, b, err := adbh.EnsureFullTextIndex(c.Name(), []string{"entry_id"}, &driver.EnsureFullTextIndexOptions{
+	index, b, err := adbh.EnsureFullTextIndex(c.Name(), []string{name}, &driver.EnsureFullTextIndexOptions{
 		Name: name,
 	})
 	assert.NoError(err, "should not return error for full text index method")
 	assert.True(b, "should create full text index")
 	assert.Exactly(index.Type(), driver.FullTextIndex, "should return full text index type")
 	assert.Exactly(index.UserName(), name, "should match provided name option")
-	_, _, err = adbh.EnsureFullTextIndex("wrong name", []string{"entry_id"}, &driver.EnsureFullTextIndexOptions{})
+	_, _, err = adbh.EnsureFullTextIndex("wrong name", []string{name}, &driver.EnsureFullTextIndexOptions{})
 	assert.Error(err, "should return error for wrong collection name")
 }
 
@@ -136,14 +136,14 @@ func TestEnsureGeoIndex(t *testing.T) {
 	defer teardown(c, t)
 	assert := assert.New(t)
 	name := "entry_id"
-	index, b, err := adbh.EnsureGeoIndex(c.Name(), []string{"entry_id"}, &driver.EnsureGeoIndexOptions{
+	index, b, err := adbh.EnsureGeoIndex(c.Name(), []string{name}, &driver.EnsureGeoIndexOptions{
 		Name: name,
 	})
 	assert.NoError(err, "should not return error for geo index method")
 	assert.True(b, "should create geo index")
 	assert.Exactly(index.Type(), driver.GeoIndex, "should return geo index type")
 	assert.Exactly(index.UserName(), name, "should match provided name option")
-	_, _, err = adbh.EnsureGeoIndex("wrong name", []string{"entry_id"}, &driver.EnsureGeoIndexOptions{})
+	_, _, err = adbh.EnsureGeoIndex("wrong name", []string{name}, &driver.EnsureGeoIndexOptions{})
 	assert.Error(err, "should return error for wrong collection name")
 }
 
@@ -153,14 +153,14 @@ func TestEnsureHashIndex(t *testing.T) {
 	defer teardown(c, t)
 	assert := assert.New(t)
 	name := "entry_id"
-	index, b, err := adbh.EnsureHashIndex(c.Name(), []string{"entry_id"}, &driver.EnsureHashIndexOptions{
+	index, b, err := adbh.EnsureHashIndex(c.Name(), []string{name}, &driver.EnsureHashIndexOptions{
 		Name: name,
 	})
 	assert.NoError(err, "should not return error for hash index method")
 	assert.True(b, "should create hash index")
 	assert.Exactly(index.Type(), driver.HashIndex, "should return hash index type")
 	assert.Exactly(index.UserName(), name, "should match provided name option")
-	_, _, err = adbh.EnsureHashIndex("wrong name", []string{"entry_id"}, &driver.EnsureHashIndexOptions{})
+	_, _, err = adbh.EnsureHashIndex("wrong name", []string{name}, &driver.EnsureHashIndexOptions{})
 	assert.Error(err, "should return error for wrong collection name")
 }
 
@@ -170,14 +170,14 @@ func TestEnsurePersistentIndex(t *testing.T) {
 	defer teardown(c, t)
 	assert := assert.New(t)
 	name := "entry_id"
-	index, b, err := adbh.EnsurePersistentIndex(c.Name(), []string{"entry_id"}, &driver.EnsurePersistentIndexOptions{
+	index, b, err := adbh.EnsurePersistentIndex(c.Name(), []string{name}, &driver.EnsurePersistentIndexOptions{
 		Name: name,
 	})
 	assert.NoError(err, "should not return error for index method")
 	assert.True(b, "should create index")
 	assert.Exactly(index.Type(), driver.PersistentIndex, "should return persistent index type")
 	assert.Exactly(index.UserName(), name, "should match provided name option")
-	_, _, err = adbh.EnsurePersistentIndex("wrong name", []string{"entry_id"}, &driver.EnsurePersistentIndexOptions{})
+	_, _, err = adbh.EnsurePersistentIndex("wrong name", []string{name}, &driver.EnsurePersistentIndexOptions{})
 	assert.Error(err, "should return error for wrong collection name")
 }
 
@@ -187,14 +187,14 @@ func TestEnsureSkipListIndex(t *testing.T) {
 	defer teardown(c, t)
 	assert := assert.New(t)
 	name := "entry_id"
-	index, b, err := adbh.EnsureSkipListIndex(c.Name(), []string{"entry_id"}, &driver.EnsureSkipListIndexOptions{
+	index, b, err := adbh.EnsureSkipListIndex(c.Name(), []string{name}, &driver.EnsureSkipListIndexOptions{
 		Name: name,
 	})
 	assert.NoError(err, "should not return error for skip list index method")
 	assert.True(b, "should create skip list index")
 	assert.Exactly(index.Type(), driver.SkipListIndex, "should return skip list index type")
 	assert.Exactly(index.UserName(), name, "should match provided name option")
-	_, _, err = adbh.EnsureSkipListIndex("wrong name", []string{"entry_id"}, &driver.EnsureSkipListIndexOptions{})
+	_, _, err = adbh.EnsureSkipListIndex("wrong name", []string{name}, &driver.EnsureSkipListIndexOptions{})
 	assert.Error(err, "should return error for wrong collection name")
 }
 
