@@ -1,8 +1,10 @@
 name: Lint golang code 
-on: [pull_request]
+on:
+  pull_request:
+    types: [edited, labeled, opened, synchronize, reopened]
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: check out code
         uses: actions/checkout@v2
