@@ -209,7 +209,7 @@ func GenQualifiedAQLFilterStatement(fmap map[string]string, filters []*Filter) (
 					"%s %s %s",
 					fmap[f.Field],
 					omap[f.Operator],
-					checkAndQuote(f.Operator, f.Value),
+					addQuoteToStrings(f.Operator, f.Value),
 				))
 			// if there's logic, write that too
 		}
@@ -318,7 +318,7 @@ func GenAQLFilterStatement(p *StatementParameters) (string, error) {
 					inner,
 					fmap[f.Field],
 					omap[f.Operator],
-					checkAndQuote(f.Operator, f.Value),
+					addQuoteToStrings(f.Operator, f.Value),
 				),
 			)
 			if len(f.Logic) != 0 {
@@ -363,9 +363,12 @@ func toString(l *arraylist.List) string {
 }
 
 // check if operator is used for a string
-func checkAndQuote(op, value string) string {
-	if op == "==" || op == "===" || op == "!=" || op == "=~" || op == "!~" {
-		return fmt.Sprintf("'%s'", value)
+func addQuoteToStrings(op, value string) string {
+	var stringOperators = []string{"==", "===", "!=", "=~", "!~"}
+	for _, item := range stringOperators {
+		if item == op {
+			return fmt.Sprintf("'%s'", value)
+		}
 	}
 	return value
 }
