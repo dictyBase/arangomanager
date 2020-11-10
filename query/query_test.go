@@ -16,6 +16,7 @@ var fmap = map[string]string{
 	"created_at": "created_at",
 	"sport":      "sports",
 	"email":      "email",
+	"label":      "label",
 }
 
 var qmap = map[string]string{
@@ -177,6 +178,15 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	assert.Contains(n, "doc.email == 'mahomes@gmail.com'", "should contain proper == statement")
 	assert.Contains(n, "OR", "should contain OR term")
 	err = dbh.ValidateQ(genFullStmt(n, c))
+	assert.NoError(err, "should not have any invalid AQL query")
+
+	qf, err := ParseFilterString("label=~GWDI")
+	assert.NoError(err, "should not return any parsing error")
+	qs, err := GenAQLFilterStatement(&StatementParameters{Fmap: fmap, Filters: qf, Doc: "doc"})
+	assert.NoError(err, "should not return any error when generating AQL filter statement")
+	assert.Contains(n, "FILTER", "should contain FILTER term")
+	assert.Contains(qs, "doc.label =~ 'GWDI'", "should contain GWDI substring")
+	err = dbh.ValidateQ(genFullStmt(qs, c))
 	assert.NoError(err, "should not have any invalid AQL query")
 	// test date equals
 	ds, err := ParseFilterString("created_at$==2019,created_at$==2018")
