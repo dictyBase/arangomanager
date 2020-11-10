@@ -364,7 +364,7 @@ func toString(l *arraylist.List) string {
 
 // check if operator is used for a string
 func addQuoteToStrings(op, value string) string {
-	var stringOperators = map[string]string{
+	var stringOperators = map[string]int{
 		"==":  1,
 		"===": 1,
 		"!=":  1,
