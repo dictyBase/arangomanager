@@ -226,18 +226,15 @@ func GenQualifiedAQLFilterStatement(fmap map[string]string, filters []*Filter) (
 func GenAQLFilterStatement(p *StatementParameters) (string, error) {
 	fmap := p.Fmap
 	filters := p.Filters
-	doc := p.Doc
+	inner := p.Doc
 	vert := p.Vert
 	lmap := map[string]string{",": "OR", ";": "AND"}
 	omap := getOperatorMap()
 	dmap := getDateOperatorMap()
 	amap := getArrayOperatorMap()
 	stmts := arraylist.New()
-	var inner string
 	if len(vert) > 0 {
 		inner = vert
-	} else {
-		inner = doc
 	}
 	for _, f := range filters {
 		// check if operator is used for array item
