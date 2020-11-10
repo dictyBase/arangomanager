@@ -5,14 +5,14 @@ on:
       - master
 jobs:
   semantic-release:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - name: set up nodejs
         uses: actions/setup-node@v1
         with:
-            node-version: 10.17.0
+            node-version: 12.19.0
       - name: install semantic release
-        run: npm i -g semantic-release@15.13.30
+        run: npm i -g semantic-release@17.x
       - name: check out code
         uses: actions/checkout@v1
       - name: Release
