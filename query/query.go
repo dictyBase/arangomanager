@@ -334,7 +334,7 @@ func toFullStatement(m map[string][]string) string {
 	if v, ok := m["let"]; ok {
 		clause.WriteString(strings.Join(v, ""))
 	}
-	clause.WriteString(" FILTER ")
+	clause.WriteString("FILTER ")
 	if v, ok := m["nonlet"]; ok {
 		clause.WriteString(strings.Join(v, ""))
 	}
