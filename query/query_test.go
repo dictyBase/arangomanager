@@ -60,24 +60,45 @@ func TestParseFilterString(t *testing.T) {
 
 func TestGenQualifiedAQLFilterStatement(t *testing.T) {
 	assert := require.New(t)
+	ta, err := testarango.NewTestArangoFromEnv(true)
+	assert.NoError(err, "should not produce any error from testarango constructor")
+	gta = ta
+	dbh, err := ta.DB(ta.Database)
+	assert.NoError(err, "should not produce any database error")
+	c := testarango.RandomString(6, 10)
+	_, err = dbh.CreateCollection(c, &driver.CreateCollectionOptions{})
+	if err != nil {
+		e := dbh.Drop()
+		assert.NoError(e, "should not produce any error from database removal")
+	}
+	defer func() {
+		err := dbh.Drop()
+		assert.NoError(err, "should not produce any error from database removal")
+	}()
 	// test string equals with OR operator
 	f, err := ParseFilterString("email===mahomes@gmail.com,email===brees@gmail.com")
 	assert.NoError(err, "should not return any parsing error")
 	n, err := GenQualifiedAQLFilterStatement(qmap, f)
 	assert.NoError(err, "should not return any error when generating AQL filter statement")
 	assert.Equal(n, "FILTER fizz.identifier == 'mahomes@gmail.com'\n OR fizz.identifier == 'brees@gmail.com'", "should match filter statement")
+	err = dbh.ValidateQ(genFullQualifiedStmt(n, "fizz", c))
+	assert.NoError(err, "should not have any invalid AQL query")
 	// test item substring for quotes
 	qf, err := ParseFilterString("label=~GWDI")
 	assert.NoError(err, "should not return any parsing error")
 	qs, err := GenQualifiedAQLFilterStatement(qmap, qf)
 	assert.NoError(err, "should not return any error when generating AQL filter statement")
 	assert.Equal(qs, "FILTER v.label =~ 'GWDI'", "should contain GWDI substring")
+	err = dbh.ValidateQ(genFullQualifiedStmt(qs, "v", c))
+	assert.NoError(err, "should not have any invalid AQL query")
 	// test date equals
 	df, err := ParseFilterString("created_at$==2019,created_at$==2018")
 	assert.NoError(err, "should not return any parsing error")
 	dn, err := GenQualifiedAQLFilterStatement(qmap, df)
 	assert.NoError(err, "should not return any error when generating AQL filter statement")
 	assert.Equal(dn, "FILTER foo.created_at == DATE_ISO8601('2019')\n OR foo.created_at == DATE_ISO8601('2018')")
+	err = dbh.ValidateQ(genFullQualifiedStmt(dn, "foo", c))
+	assert.NoError(err, "should not have any invalid AQL query")
 	// test item in array equals
 	af, err := ParseFilterString("sport@==basketball")
 	assert.NoError(err, "should not return any parsing error")
@@ -89,6 +110,8 @@ func TestGenQualifiedAQLFilterStatement(t *testing.T) {
 		"FILTER 'basketball' IN bar.game[*]",
 		"should contain an array containing statement",
 	)
+	err = dbh.ValidateQ(genFullQualifiedStmt(an, "bar", c))
+	assert.NoError(err, "should not have any invalid AQL query")
 	// test item substring in array
 	af2, err := ParseFilterString("sport@=~basket")
 	assert.NoError(err, "should not return any parsing error")
@@ -100,6 +123,8 @@ func TestGenQualifiedAQLFilterStatement(t *testing.T) {
 		"should contain FILTER CONTAINS statement, indicating array item substring",
 	)
 	assert.Contains(an2, "LIMIT 1", "should match limit of one")
+	err = dbh.ValidateQ(genFullQualifiedStmt(an2, "bar", c))
+	assert.NoError(err, "should not have any invalid AQL query")
 	// test item in array not equals
 	bf, err := ParseFilterString("sport@!=banana,sport@!=apple")
 	assert.NoError(err, "should not return any parsing error")
@@ -117,6 +142,8 @@ func TestGenQualifiedAQLFilterStatement(t *testing.T) {
 		"FILTER 'apple' NOT IN bar.game[*]",
 		"should contain filter with NOT IN operator with collection and column name",
 	)
+	err = dbh.ValidateQ(genFullQualifiedStmt(bn, "bar", c))
+	assert.NoError(err, "should not have any invalid AQL query")
 }
 
 func TestGenAQLFilterStatement(t *testing.T) {
@@ -185,6 +212,16 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	assert.Contains(bf, "OR", "should contain OR term")
 	err = dbh.ValidateQ(genFullStmt(n))
 	assert.NoError(err, "should not have any invalid AQL query")
+}
+
+func genFullQualifiedStmt(filter, name, coll string) string {
+	return fmt.Sprintf(
+		`
+		FOR %s in %s
+			%s
+			RETURN %s
+		`, name, coll, filter, name,
+	)
 }
 
 func genFullStmt(f string) string {
