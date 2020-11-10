@@ -22,6 +22,7 @@ var qmap = map[string]string{
 	"created_at": "foo.created_at",
 	"sport":      "bar.game",
 	"email":      "fizz.identifier",
+	"label": 	  "v.label",
 }
 
 var gta *testarango.TestArango
@@ -58,46 +59,30 @@ func TestParseFilterString(t *testing.T) {
 }
 
 func TestGenQualifiedAQLFilterStatement(t *testing.T) {
-	// test regular string equals
-	f, err := ParseFilterString("email===mahomes@gmail.com,email===brees@gmail.com")
-	if err != nil {
-		t.Fatalf("error in parsing filter string %s", err)
-	}
-	n, err := GenQualifiedAQLFilterStatement(qmap, f)
-	if err != nil {
-		t.Fatalf("error in generating AQL filter statement %s", err)
-	}
 	assert := assert.New(t)
-	assert.Contains(n, "FILTER", "should contain FILTER term")
-	assert.Contains(n, "fizz.identifier == 'mahomes@gmail.com'", "should contain proper == statement")
-	assert.Contains(n, "fizz.identifier == 'brees@gmail.com'", "should contain proper == statement")
-	assert.Contains(n, "OR", "should contain OR term")
-
+	// test string equals with OR operator
+	f, err := ParseFilterString("email===mahomes@gmail.com,email===brees@gmail.com")
+	assert.NoError(err, "should not return any parsing error")
+	n, err := GenQualifiedAQLFilterStatement(qmap, f)
+	assert.NoError(err, "should not return any error when generating AQL filter statement")
+	assert.Equal(n, "FILTER fizz.identifier == 'mahomes@gmail.com'\n OR fizz.identifier == 'brees@gmail.com'", "should match filter statement")
+	// test item substring for quotes
+	qf, err := ParseFilterString("label=~GWDI")
+	assert.NoError(err, "should not return any parsing error")
+	qs, err := GenQualifiedAQLFilterStatement(qmap, qf)
+	assert.NoError(err, "should not return any error when generating AQL filter statement")
+	assert.Equal(qs, "FILTER v.label =~ 'GWDI'", "should contain GWDI substring")
 	// test date equals
 	df, err := ParseFilterString("created_at$==2019,created_at$==2018")
-	if err != nil {
-		t.Fatalf("error in parsing filter string %s", err)
-	}
+	assert.NoError(err, "should not return any parsing error")
 	dn, err := GenQualifiedAQLFilterStatement(qmap, df)
-	if err != nil {
-		t.Fatalf("error in generating AQL filter statement %s", err)
-	}
-	assert.Contains(dn, "DATE_ISO8601", "should contain DATE_ISO8601 term")
-	assert.Contains(dn, "OR", "should contain OR term")
-	assert.Contains(
-		dn,
-		"foo.created_at == DATE_ISO8601('2018')",
-		"should contain proper date statement",
-	)
+	assert.NoError(err, "should not return any error when generating AQL filter statement")
+	assert.Equal(dn, "FILTER foo.created_at == DATE_ISO8601('2019')\n OR foo.created_at == DATE_ISO8601('2018')")
 	// test item in array equals
 	af, err := ParseFilterString("sport@==basketball")
-	if err != nil {
-		t.Fatalf("error in parsing filter string %s", err)
-	}
+	assert.NoError(err, "should not return any parsing error")
 	an, err := GenQualifiedAQLFilterStatement(qmap, af)
-	if err != nil {
-		t.Fatalf("error in generating AQL filter statement %s", err)
-	}
+	assert.NoError(err, "should not return any error when generating AQL filter statement")
 	assert.Contains(an, "LET", "should contain LET term, indicating array item")
 	assert.Contains(
 		an,
@@ -106,27 +91,20 @@ func TestGenQualifiedAQLFilterStatement(t *testing.T) {
 	)
 	// test item substring in array
 	af2, err := ParseFilterString("sport@=~basket")
-	if err != nil {
-		t.Fatalf("error in parsing filter string %s", err)
-	}
+	assert.NoError(err, "should not return any parsing error")
 	an2, err := GenQualifiedAQLFilterStatement(qmap, af2)
-	if err != nil {
-		t.Fatalf("error in generating AQL filter statement %s", err)
-	}
+	assert.NoError(err, "should not return any error when generating AQL filter statement")
 	assert.Contains(
 		an2,
 		"FILTER CONTAINS(x, LOWER('basket'))",
 		"should contain FILTER CONTAINS statement, indicating array item substring",
 	)
+	assert.Contains(an2, "LIMIT 1", "should match limit of one")
 	// test item in array not equals
 	bf, err := ParseFilterString("sport@!=banana,sport@!=apple")
-	if err != nil {
-		t.Fatalf("error in parsing filter string %s", err)
-	}
+	assert.NoError(err, "should not return any parsing error")
 	bn, err := GenQualifiedAQLFilterStatement(qmap, bf)
-	if err != nil {
-		t.Fatalf("error in generating AQL filter statement %s", err)
-	}
+	assert.NoError(err, "should not return any error when generating AQL filter statement")
 	assert.Contains(bn, "NOT IN", "should contain NOT IN statement, indicating item is not in array")
 	assert.Contains(bn, "OR", "should contain OR term")
 	assert.Contains(
