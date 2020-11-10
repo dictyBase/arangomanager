@@ -8,7 +8,7 @@ import (
 	driver "github.com/arangodb/go-driver"
 	"github.com/dictyBase/arangomanager/testarango"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // mapping of filters to database fields
@@ -28,7 +28,7 @@ var qmap = map[string]string{
 var gta *testarango.TestArango
 
 func TestParseFilterString(t *testing.T) {
-	assert := assert.New(t)
+	assert := require.New(t)
 	s, err := ParseFilterString("sport===football;email===mahomes@gmail.com")
 	assert.NoError(err, "should not return any parse error")
 	assert.Len(s, 2, "should match length of two items in filter array")
@@ -59,7 +59,7 @@ func TestParseFilterString(t *testing.T) {
 }
 
 func TestGenQualifiedAQLFilterStatement(t *testing.T) {
-	assert := assert.New(t)
+	assert := require.New(t)
 	// test string equals with OR operator
 	f, err := ParseFilterString("email===mahomes@gmail.com,email===brees@gmail.com")
 	assert.NoError(err, "should not return any parsing error")
@@ -120,23 +120,17 @@ func TestGenQualifiedAQLFilterStatement(t *testing.T) {
 }
 
 func TestGenAQLFilterStatement(t *testing.T) {
+	assert := require.New(t)
 	ta, err := testarango.NewTestArangoFromEnv(true)
-	if err != nil {
-		log.Fatalf("unable to construct new TestArango instance %s", err)
-	}
+	assert.NoError(err, "should not produce any error from testarango constructor")
 	gta = ta
 	dbh, err := ta.DB(ta.Database)
-	if err != nil {
-		log.Fatalf("unable to get database %s", err)
-	}
+	assert.NoError(err, "should not produce any database error")
 	c := "test_collection"
 	_, err = dbh.CreateCollection(c, &driver.CreateCollectionOptions{})
 	if err != nil {
 		e := dbh.Drop()
-		if e != nil {
-			log.Fatalf("could not remove database %s", e)
-		}
-		log.Fatalf("unable to create collection %s %s", c, err)
+		assert.NoError(e, "should not produce any error from database removal")
 	}
 	defer func() {
 		e := dbh.Drop()
@@ -146,79 +140,51 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	}()
 	// test regular string equals
 	s, err := ParseFilterString("email===mahomes@gmail.com,email===brees@gmail.com")
-	if err != nil {
-		t.Fatalf("error in parsing filter string %s", err)
-	}
+	assert.NoError(err, "should not have any error from parsing string")
 	n, err := GenAQLFilterStatement(&StatementParameters{Fmap: fmap, Filters: s, Doc: "doc"})
-	if err != nil {
-		t.Fatalf("error in generating AQL filter statement %s", err)
-	}
-	assert := assert.New(t)
+	assert.NoError(err, "should not have any error from generating AQL filter statement")
 	assert.Contains(n, "FILTER", "should contain FILTER term")
 	assert.Contains(n, "doc.email == 'mahomes@gmail.com'", "should contain proper == statement")
 	assert.Contains(n, "OR", "should contain OR term")
-	x := dbh.ValidateQ(genFullStmt(n))
-	if x != nil {
-		t.Fatalf("invalid AQL query %s", x)
-	}
+	err = dbh.ValidateQ(genFullStmt(n))
+	assert.NoError(err, "should not have any invalid AQL query")
 	// test date equals
 	ds, err := ParseFilterString("created_at$==2019,created_at$==2018")
-	if err != nil {
-		t.Fatalf("error in parsing filter string %s", err)
-	}
+	assert.NoError(err, "should not have any error from parsing string")
 	dn, err := GenAQLFilterStatement(&StatementParameters{Fmap: fmap, Filters: ds, Doc: "doc"})
-	if err != nil {
-		t.Fatalf("error in generating AQL filter statement %s", err)
-	}
+	assert.NoError(err, "should not have any error from generating AQL filter statement")
 	assert.Contains(dn, "DATE_ISO8601", "should contain DATE_ISO8601 term")
 	assert.Contains(dn, "OR", "should contain OR term")
-	xd := dbh.ValidateQ(genFullStmt(dn))
-	if xd != nil {
-		t.Fatalf("invalid AQL query %s", dn)
-	}
+	err = dbh.ValidateQ(genFullStmt(n))
+	assert.NoError(err, "should not have any invalid AQL query")
 	// test item in array equals
 	as, err := ParseFilterString("sport@==basketball")
-	if err != nil {
-		t.Fatalf("error in parsing filter string %s", err)
-	}
+	assert.NoError(err, "should not have any error from parsing string")
 	an, err := GenAQLFilterStatement(&StatementParameters{Fmap: fmap, Filters: as, Doc: "doc"})
-	if err != nil {
-		t.Fatalf("error in generating AQL filter statement %s", err)
-	}
+	assert.NoError(err, "should not have any error from generating AQL filter statement")
 	assert.Contains(an, "LET", "should contain LET term, indicating array item")
-	xa := dbh.ValidateQ(genFullStmt(an))
-	if xa != nil {
-		t.Fatalf("invalid AQL query %s", xa)
-	}
+	err = dbh.ValidateQ(genFullStmt(n))
+	assert.NoError(err, "should not have any invalid AQL query")
 	// test item substring in array
 	a, err := ParseFilterString("sport@=~basket")
-	if err != nil {
-		t.Fatalf("error in parsing filter string %s", err)
-	}
+	assert.NoError(err, "should not have any error from parsing string")
 	af, err := GenAQLFilterStatement(&StatementParameters{Fmap: fmap, Filters: a, Doc: "doc"})
-	if err != nil {
-		t.Fatalf("error in generating AQL filter statement %s", err)
-	}
-	assert.Contains(af, "FILTER CONTAINS", "should contain FILTER CONTAINS statement, indicating array item substring")
-	xaf := dbh.ValidateQ(genFullStmt(af))
-	if xaf != nil {
-		t.Fatalf("invalid AQL query %s", xaf)
-	}
+	assert.NoError(err, "should not have any error from generating AQL filter statement")
+	assert.Contains(af,
+		"FILTER CONTAINS",
+		"should contain FILTER CONTAINS statement, indicating array item substring",
+	)
+	err = dbh.ValidateQ(genFullStmt(n))
+	assert.NoError(err, "should not have any invalid AQL query")
 	// test item in array not equals
 	b, err := ParseFilterString("sport@!=banana,sport@!=apple")
-	if err != nil {
-		t.Fatalf("error in parsing filter string %s", err)
-	}
+	assert.NoError(err, "should not have any error from parsing string")
 	bf, err := GenAQLFilterStatement(&StatementParameters{Fmap: fmap, Filters: b, Doc: "doc"})
-	if err != nil {
-		t.Fatalf("error in generating AQL filter statement %s", err)
-	}
+	assert.NoError(err, "should not have any error from generating AQL filter statement")
 	assert.Contains(bf, "NOT IN", "should contain NOT IN statement, indicating item is not in array")
 	assert.Contains(bf, "OR", "should contain OR term")
-	xb := dbh.ValidateQ(genFullStmt(bf))
-	if xb != nil {
-		t.Fatalf("invalid AQL query %s", xb)
-	}
+	err = dbh.ValidateQ(genFullStmt(n))
+	assert.NoError(err, "should not have any invalid AQL query")
 }
 
 func genFullStmt(f string) string {
