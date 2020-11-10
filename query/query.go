@@ -364,11 +364,15 @@ func toString(l *arraylist.List) string {
 
 // check if operator is used for a string
 func addQuoteToStrings(op, value string) string {
-	var stringOperators = []string{"==", "===", "!=", "=~", "!~"}
-	for _, item := range stringOperators {
-		if item == op {
-			return fmt.Sprintf("'%s'", value)
-		}
+	var stringOperators = map[string]string{
+		"==":  1,
+		"===": 1,
+		"!=":  1,
+		"=~":  1,
+		"!~":  1,
+	}
+	if _, ok := stringOperators[op]; ok {
+		return fmt.Sprintf("'%s'", value)
 	}
 	return value
 }
