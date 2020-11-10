@@ -22,7 +22,7 @@ var qmap = map[string]string{
 	"created_at": "foo.created_at",
 	"sport":      "bar.game",
 	"email":      "fizz.identifier",
-	"label": 	  "v.label",
+	"label":      "v.label",
 }
 
 var gta *testarango.TestArango
