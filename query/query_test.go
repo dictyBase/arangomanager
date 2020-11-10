@@ -28,6 +28,7 @@ var qmap = map[string]string{
 var gta *testarango.TestArango
 
 func TestParseFilterString(t *testing.T) {
+	t.Parallel()
 	assert := require.New(t)
 	s, err := ParseFilterString("sport===football;email===mahomes@gmail.com")
 	assert.NoError(err, "should not return any parse error")
@@ -59,6 +60,7 @@ func TestParseFilterString(t *testing.T) {
 }
 
 func TestGenQualifiedAQLFilterStatement(t *testing.T) {
+	t.Parallel()
 	assert := require.New(t)
 	ta, err := testarango.NewTestArangoFromEnv(true)
 	assert.NoError(err, "should not produce any error from testarango constructor")
@@ -147,13 +149,14 @@ func TestGenQualifiedAQLFilterStatement(t *testing.T) {
 }
 
 func TestGenAQLFilterStatement(t *testing.T) {
+	t.Parallel()
 	assert := require.New(t)
 	ta, err := testarango.NewTestArangoFromEnv(true)
 	assert.NoError(err, "should not produce any error from testarango constructor")
 	gta = ta
 	dbh, err := ta.DB(ta.Database)
 	assert.NoError(err, "should not produce any database error")
-	c := "test_collection"
+	c := testarango.RandomString(9, 11)
 	_, err = dbh.CreateCollection(c, &driver.CreateCollectionOptions{})
 	if err != nil {
 		e := dbh.Drop()
@@ -173,7 +176,7 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	assert.Contains(n, "FILTER", "should contain FILTER term")
 	assert.Contains(n, "doc.email == 'mahomes@gmail.com'", "should contain proper == statement")
 	assert.Contains(n, "OR", "should contain OR term")
-	err = dbh.ValidateQ(genFullStmt(n))
+	err = dbh.ValidateQ(genFullStmt(n, c))
 	assert.NoError(err, "should not have any invalid AQL query")
 	// test date equals
 	ds, err := ParseFilterString("created_at$==2019,created_at$==2018")
@@ -182,7 +185,7 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	assert.NoError(err, "should not have any error from generating AQL filter statement")
 	assert.Contains(dn, "DATE_ISO8601", "should contain DATE_ISO8601 term")
 	assert.Contains(dn, "OR", "should contain OR term")
-	err = dbh.ValidateQ(genFullStmt(n))
+	err = dbh.ValidateQ(genFullStmt(dn, c))
 	assert.NoError(err, "should not have any invalid AQL query")
 	// test item in array equals
 	as, err := ParseFilterString("sport@==basketball")
@@ -190,7 +193,7 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	an, err := GenAQLFilterStatement(&StatementParameters{Fmap: fmap, Filters: as, Doc: "doc"})
 	assert.NoError(err, "should not have any error from generating AQL filter statement")
 	assert.Contains(an, "LET", "should contain LET term, indicating array item")
-	err = dbh.ValidateQ(genFullStmt(n))
+	err = dbh.ValidateQ(genFullStmt(an, c))
 	assert.NoError(err, "should not have any invalid AQL query")
 	// test item substring in array
 	a, err := ParseFilterString("sport@=~basket")
@@ -201,7 +204,7 @@ func TestGenAQLFilterStatement(t *testing.T) {
 		"FILTER CONTAINS",
 		"should contain FILTER CONTAINS statement, indicating array item substring",
 	)
-	err = dbh.ValidateQ(genFullStmt(n))
+	err = dbh.ValidateQ(genFullStmt(af, c))
 	assert.NoError(err, "should not have any invalid AQL query")
 	// test item in array not equals
 	b, err := ParseFilterString("sport@!=banana,sport@!=apple")
@@ -210,7 +213,7 @@ func TestGenAQLFilterStatement(t *testing.T) {
 	assert.NoError(err, "should not have any error from generating AQL filter statement")
 	assert.Contains(bf, "NOT IN", "should contain NOT IN statement, indicating item is not in array")
 	assert.Contains(bf, "OR", "should contain OR term")
-	err = dbh.ValidateQ(genFullStmt(n))
+	err = dbh.ValidateQ(genFullStmt(bf, c))
 	assert.NoError(err, "should not have any invalid AQL query")
 }
 
@@ -224,13 +227,13 @@ func genFullQualifiedStmt(filter, name, coll string) string {
 	)
 }
 
-func genFullStmt(f string) string {
+func genFullStmt(filter, coll string) string {
 	return fmt.Sprintf(
 		`
-		FOR doc in test_collection
+		FOR doc in %s
 			%s
 			RETURN doc
 		`,
-		f,
+		coll, filter,
 	)
 }
