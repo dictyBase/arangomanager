@@ -14,6 +14,13 @@ import (
 var ahost, aport, auser, apass, adb string
 var adbh *Database
 
+type genderCountParams struct {
+	assert     *assert.Assertions
+	collection driver.Collection
+	gender     string
+	count      int64
+}
+
 func TestMain(m *testing.M) {
 	ta, err := newTestArangoFromEnv(true)
 	if err != nil {
@@ -53,25 +60,15 @@ func TestCountWithParams(t *testing.T) {
 	t.Parallel()
 	c := setup(adbh, t)
 	defer teardown(c, t)
-	fc, err := adbh.CountWithParams(
-		genderQ,
-		map[string]interface{}{
-			"@collection": c.Name(),
-			"gender":      "female",
-		},
-	)
 	assert := assert.New(t)
-	assert.NoErrorf(err, "expect no error from counting query, received error %s", err)
-	assert.Equalf(fc, int64(15), "expect %d received %d", 15, fc)
-	mc, err := adbh.CountWithParams(
-		genderQ,
-		map[string]interface{}{
-			"@collection": c.Name(),
-			"gender":      "male",
-		},
-	)
-	assert.NoErrorf(err, "expect no error, received error %s", err)
-	assert.Equalf(mc, int64(15), "expect %d received %d", 15, mc)
+	for _, g := range []string{"male", "female"} {
+		testGenderCount(&genderCountParams{
+			assert:     assert,
+			collection: c,
+			gender:     g,
+			count:      int64(15),
+		})
+	}
 }
 
 func TestCollection(t *testing.T) {
@@ -281,6 +278,24 @@ func TestGetRow(t *testing.T) {
 	)
 	assert.NoErrorf(err, "expect no error from row query, received error %s", err)
 	assert.True(er.IsEmpty(), "expect empty resultset")
+}
+
+//func TestTruncate(t *testing.T) {
+//t.Parallel()
+//c := setup(adbh, t)
+//defer teardown(c, t)
+//}
+
+func testGenderCount(args *genderCountParams) {
+	gc, err := adbh.CountWithParams(
+		genderQ,
+		map[string]interface{}{
+			"@collection": args.collection.Name(),
+			"gender":      args.gender,
+		},
+	)
+	args.assert.NoErrorf(err, "expect no error from counting query, received error %s", err)
+	args.assert.Equalf(gc, args.count, "expect %d received %d", args.count, gc)
 }
 
 func testAllRows(rs *Resultset, assert *assert.Assertions, count int) {
