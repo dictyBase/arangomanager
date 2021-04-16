@@ -17,6 +17,19 @@ func (d *Database) Handler() driver.Database {
 	return d.dbh
 }
 
+// Truncate removes all data from the collections without touching the indexes
+func (d *Database) Truncate(names ...string) error {
+	var colls []driver.Collection
+	for _, n := range names {
+		c, err := d.Collection(n)
+		if err != nil {
+			return err
+		}
+		colls = append(colls, c)
+	}
+	return d.truncateWithTransaction(colls, names...)
+}
+
 // SearchRows query the database with bind parameters that is expected to return
 // multiple rows of result
 func (d *Database) SearchRows(query string, bindVars map[string]interface{}) (*Resultset, error) {
@@ -232,4 +245,36 @@ func (d *Database) getResult(c driver.Cursor, err error) (*Result, error) {
 		return &Result{empty: true}, nil
 	}
 	return &Result{cursor: c}, nil
+}
+
+func (d *Database) truncateWithTransaction(colls []driver.Collection, names ...string) error {
+	ctx := context.Background()
+	tid, err := d.dbh.BeginTransaction(
+		ctx,
+		driver.TransactionCollections{
+			Read:  names,
+			Write: names,
+		}, nil)
+	if err != nil {
+		return fmt.Errorf("unable to start transaction %s", err)
+	}
+	for _, c := range colls {
+		if err := c.Truncate(ctx); err != nil {
+			var nerr error
+			terr := d.dbh.AbortTransaction(ctx, tid, nil)
+			if terr != nil {
+				nerr = fmt.Errorf(
+					"transaction error %s and error in truncating collection %s %s",
+					terr, c.Name(), err,
+				)
+			} else {
+				nerr = fmt.Errorf("error in truncating collection %s %s", c.Name(), err)
+			}
+			return nerr
+		}
+	}
+	if err := d.dbh.CommitTransaction(ctx, tid, nil); err != nil {
+		return fmt.Errorf("error in committing transaction %s", err)
+	}
+	return nil
 }
