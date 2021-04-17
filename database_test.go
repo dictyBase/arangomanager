@@ -280,11 +280,30 @@ func TestGetRow(t *testing.T) {
 	assert.True(er.IsEmpty(), "expect empty resultset")
 }
 
-//func TestTruncate(t *testing.T) {
-//t.Parallel()
-//c := setup(adbh, t)
-//defer teardown(c, t)
-//}
+func TestTruncate(t *testing.T) {
+	t.Parallel()
+	c := setup(adbh, t)
+	defer teardown(c, t)
+	assert := assert.New(t)
+	for _, g := range []string{"male", "female"} {
+		testGenderCount(&genderCountParams{
+			assert:     assert,
+			collection: c,
+			gender:     g,
+			count:      int64(15),
+		})
+	}
+	err := adbh.Truncate(c.Name())
+	assert.NoErrorf(err, "expect no error from truncation, received error %s", err)
+	for _, g := range []string{"male", "female"} {
+		testGenderCount(&genderCountParams{
+			assert:     assert,
+			collection: c,
+			gender:     g,
+			count:      int64(0),
+		})
+	}
+}
 
 func testGenderCount(args *genderCountParams) {
 	gc, err := adbh.CountWithParams(
