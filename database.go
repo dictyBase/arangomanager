@@ -3,6 +3,7 @@ package arangomanager
 import (
 	"context"
 	"fmt"
+	"math"
 
 	driver "github.com/arangodb/go-driver"
 )
@@ -235,9 +236,10 @@ func (d *Database) Truncate(names ...string) error {
 		context.Background(),
 		truncateFn,
 		&driver.TransactionOptions{
-			WriteCollections: names,
-			ReadCollections:  names,
-			Params:           []interface{}{names},
+			WriteCollections:   names,
+			ReadCollections:    names,
+			Params:             []interface{}{names},
+			MaxTransactionSize: int(math.Pow10(12)),
 		})
 	if err != nil {
 		return fmt.Errorf("error in truncating collections %s", err)
