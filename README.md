@@ -5,7 +5,7 @@
 [![codecov](https://codecov.io/gh/dictyBase/arangomanager/branch/develop/graph/badge.svg)](https://codecov.io/gh/dictyBase/arangomanager)
 [![Maintainability](https://api.codeclimate.com/v1/badges/63686238089c642c04f2/maintainability)](https://codeclimate.com/github/dictyBase/arangomanager/maintainability)   
 ![Last commit](https://badgen.net/github/last-commit/dictyBase/arangomanager/develop)   
-[![Funding](https://badgen.net/badge/NIGMS/Rex%20L%20Chisholm,dictyBase,DCR/yellow?list=|)](https://projectreporter.nih.gov/project_info_description.cfm?aid=10024726&icde=0)
+[![Funding](https://badgen.net/badge/NIGMS/Rex%20L%20Chisholm,dictyBase,DCR/yellow?list=|)](https://reporter.nih.gov/project-details/10024726)
 
 Golang based various reusable utilities to work with [arangodb](https://arangodb.com).
 
