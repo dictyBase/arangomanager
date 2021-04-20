@@ -235,10 +235,9 @@ func (d *Database) Truncate(names ...string) error {
 		context.Background(),
 		truncateFn,
 		&driver.TransactionOptions{
-			WriteCollections:   names,
-			ReadCollections:    names,
-			MaxTransactionSize: 10000,
-			Params:             []interface{}{names},
+			WriteCollections: names,
+			ReadCollections:  names,
+			Params:           []interface{}{names},
 		})
 	if err != nil {
 		return fmt.Errorf("error in truncating collections %s", err)
