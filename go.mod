@@ -8,7 +8,7 @@ require (
 	github.com/go-playground/validator/v10 v10.9.0
 	github.com/jinzhu/now v0.0.0-20181116074157-8ec929ed50c3
 	github.com/stretchr/testify v1.7.0
-	github.com/urfave/cli v1.22.5
+	github.com/urfave/cli v1.22.7
 )
 
 go 1.13
