@@ -1,4 +1,7 @@
 linters-settings:
+   funlen:
+      lines: 112
+      statements: 110
    lll:
       line-length: 130
    revive:
@@ -8,11 +11,15 @@ linters-settings:
    gosec:
       excludes:
         - G404
+        - G402
    wrapcheck:
       ignorePackageGlobs:
+        - github.com/arangodb/*
         - github.com/dictyBase/aphgrpc
         - github.com/dictyBase/arangomanager
-        - github.com/arangodb/go-driver
+      ignoreInterfaceRegexps:
+        - ^Database*
+
 linters:
   # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
   disable-all: true
