@@ -22,19 +22,19 @@ type genderCountParams struct {
 }
 
 func TestMain(m *testing.M) {
-	ta, err := newTestArangoFromEnv(true)
+	tra, err := newTestArangoFromEnv(true)
 	if err != nil {
 		log.Fatalf("unable to construct new TestArango instance %s", err)
 	}
-	dbh, err := ta.DB(ta.Database)
+	dbh, err := tra.DB(tra.Database)
 	if err != nil {
 		log.Fatalf("unable to get database %s", err)
 	}
-	auser = ta.User
-	apass = ta.Pass
-	ahost = ta.Host
-	aport = strconv.Itoa(ta.Port)
-	adb = ta.Database
+	auser = tra.User
+	apass = tra.Pass
+	ahost = tra.Host
+	aport = strconv.Itoa(tra.Port)
+	adb = tra.Database
 	adbh = dbh
 	code := m.Run()
 	if err := dbh.Drop(); err != nil {
@@ -45,26 +45,26 @@ func TestMain(m *testing.M) {
 
 func TestCount(t *testing.T) {
 	t.Parallel()
-	c := setup(adbh, t)
-	defer teardown(c, t)
-	fc, err := adbh.Count(fmt.Sprintf(genderQNoParam, c.Name(), "female"))
+	conn := setup(adbh, t)
+	defer teardown(t, conn)
+	fc, err := adbh.Count(fmt.Sprintf(genderQNoParam, conn.Name(), "female"))
 	assert := assert.New(t)
 	assert.NoErrorf(err, "expect no error from counting query, received error %s", err)
 	assert.Equalf(fc, int64(15), "expect %d received %d", 15, fc)
-	mc, err := adbh.Count(fmt.Sprintf(genderQNoParam, c.Name(), "male"))
+	mc, err := adbh.Count(fmt.Sprintf(genderQNoParam, conn.Name(), "male"))
 	assert.NoErrorf(err, "expect no error from counting query, received error %s", err)
 	assert.Equalf(mc, int64(15), "expect %d received %d", 15, mc)
 }
 
 func TestCountWithParams(t *testing.T) {
 	t.Parallel()
-	c := setup(adbh, t)
-	defer teardown(c, t)
+	conn := setup(adbh, t)
+	defer teardown(t, conn)
 	assert := assert.New(t)
 	for _, g := range []string{"male", "female"} {
 		testGenderCount(&genderCountParams{
 			assert:     assert,
-			collection: c,
+			collection: conn,
 			gender:     g,
 			count:      int64(15),
 		})
@@ -73,21 +73,21 @@ func TestCountWithParams(t *testing.T) {
 
 func TestCollection(t *testing.T) {
 	t.Parallel()
-	c := setup(adbh, t)
-	defer teardown(c, t)
+	conn := setup(adbh, t)
+	defer teardown(t, conn)
 	_, err := adbh.Collection(randomString(6, 8))
 	assert := assert.New(t)
 	assert.Error(err, "expect to return an error for an non-existent collection")
-	nc, err := adbh.Collection(c.Name())
+	nc, err := adbh.Collection(conn.Name())
 	assert.NoError(err, "not expect to return an error for existent collection")
-	assert.Equalf(c.Name(), nc.Name(), "expect %s, received %s", c.Name(), nc.Name())
+	assert.Equalf(conn.Name(), nc.Name(), "expect %s, received %s", conn.Name(), nc.Name())
 }
 
 func TestCreateCollection(t *testing.T) {
 	t.Parallel()
-	c := setup(adbh, t)
-	defer teardown(c, t)
-	_, err := adbh.CreateCollection(c.Name(), nil)
+	conn := setup(adbh, t)
+	defer teardown(t, conn)
+	_, err := adbh.CreateCollection(conn.Name(), nil)
 	assert := assert.New(t)
 	assert.Error(err, "expect to return existing collection error")
 	ncoll := randomString(9, 11)
@@ -99,7 +99,7 @@ func TestCreateCollection(t *testing.T) {
 func TestFindOrCreateCollection(t *testing.T) {
 	t.Parallel()
 	c := setup(adbh, t)
-	defer teardown(c, t)
+	defer teardown(t, c)
 	ec, err := adbh.FindOrCreateCollection(c.Name(), nil)
 	assert := assert.New(t)
 	assert.NoError(err, "not expect to return an error for existent collection")
@@ -113,7 +113,7 @@ func TestFindOrCreateCollection(t *testing.T) {
 func TestEnsureFullTextIndex(t *testing.T) {
 	t.Parallel()
 	c := setup(adbh, t)
-	defer teardown(c, t)
+	defer teardown(t, c)
 	assert := assert.New(t)
 	name := "group"
 	index, b, err := adbh.EnsureFullTextIndex(c.Name(), []string{name}, &driver.EnsureFullTextIndexOptions{
@@ -130,7 +130,7 @@ func TestEnsureFullTextIndex(t *testing.T) {
 func TestEnsureGeoIndex(t *testing.T) {
 	t.Parallel()
 	c := setup(adbh, t)
-	defer teardown(c, t)
+	defer teardown(t, c)
 	assert := assert.New(t)
 	name := "value"
 	index, b, err := adbh.EnsureGeoIndex(c.Name(), []string{name}, &driver.EnsureGeoIndexOptions{
@@ -147,7 +147,7 @@ func TestEnsureGeoIndex(t *testing.T) {
 func TestEnsureHashIndex(t *testing.T) {
 	t.Parallel()
 	c := setup(adbh, t)
-	defer teardown(c, t)
+	defer teardown(t, c)
 	assert := assert.New(t)
 	name := "entry_id"
 	index, b, err := adbh.EnsureHashIndex(c.Name(), []string{name}, &driver.EnsureHashIndexOptions{
@@ -164,7 +164,7 @@ func TestEnsureHashIndex(t *testing.T) {
 func TestEnsurePersistentIndex(t *testing.T) {
 	t.Parallel()
 	c := setup(adbh, t)
-	defer teardown(c, t)
+	defer teardown(t, c)
 	assert := assert.New(t)
 	name := "entry_id"
 	index, b, err := adbh.EnsurePersistentIndex(c.Name(), []string{name}, &driver.EnsurePersistentIndexOptions{
@@ -181,7 +181,7 @@ func TestEnsurePersistentIndex(t *testing.T) {
 func TestEnsureSkipListIndex(t *testing.T) {
 	t.Parallel()
 	c := setup(adbh, t)
-	defer teardown(c, t)
+	defer teardown(t, c)
 	assert := assert.New(t)
 	name := "created_at"
 	index, b, err := adbh.EnsureSkipListIndex(c.Name(), []string{name}, &driver.EnsureSkipListIndexOptions{
@@ -197,40 +197,40 @@ func TestEnsureSkipListIndex(t *testing.T) {
 
 func TestSearchRowsWithParams(t *testing.T) {
 	t.Parallel()
-	c := setup(adbh, t)
-	defer teardown(c, t)
+	conn := setup(adbh, t)
+	defer teardown(t, conn)
 	frs, err := adbh.SearchRows(
 		genderQ,
 		map[string]interface{}{
-			"@collection": c.Name(),
+			"@collection": conn.Name(),
 			"gender":      "female",
 		},
 	)
-	testSearchRs(frs, err, t)
+	testSearchRs(t, frs, err)
 	wrs, err := adbh.SearchRows(
 		genderQ,
 		map[string]interface{}{
-			"@collection": c.Name(),
+			"@collection": conn.Name(),
 			"gender":      "wakanda",
 		},
 	)
-	testSearchRsNoRow(wrs, err, t)
+	testSearchRsNoRow(t, wrs, err)
 }
 
 func TestSearchRows(t *testing.T) {
 	t.Parallel()
 	c := setup(adbh, t)
-	defer teardown(c, t)
+	defer teardown(t, c)
 	frs, err := adbh.Search(fmt.Sprintf(genderQNoParam, c.Name(), "female"))
-	testSearchRs(frs, err, t)
+	testSearchRs(t, frs, err)
 	wrs, err := adbh.Search(fmt.Sprintf(genderQNoParam, c.Name(), "wakanda"))
-	testSearchRsNoRow(wrs, err, t)
+	testSearchRsNoRow(t, wrs, err)
 }
 
 func TestDo(t *testing.T) {
 	t.Parallel()
 	c := setup(adbh, t)
-	defer teardown(c, t)
+	defer teardown(t, c)
 	err := adbh.Do(
 		fmt.Sprintf(userIns, c.Name()),
 		map[string]interface{}{
@@ -249,56 +249,56 @@ func TestDo(t *testing.T) {
 
 func TestGetRow(t *testing.T) {
 	t.Parallel()
-	c := setup(adbh, t)
-	defer teardown(c, t)
-	r, err := adbh.GetRow(
+	conn := setup(adbh, t)
+	defer teardown(t, conn)
+	row, err := adbh.GetRow(
 		userQ,
 		map[string]interface{}{
-			"@collection": c.Name(),
+			"@collection": conn.Name(),
 			"first":       "Mickie",
 			"last":        "Menchaca",
 		},
 	)
 	assert := assert.New(t)
 	assert.NoErrorf(err, "expect no error from search query, received error %s", err)
-	assert.False(r.IsEmpty(), "expect result to be not empty")
+	assert.False(row.IsEmpty(), "expect result to be not empty")
 	var u testUserDb
-	err = r.Read(&u)
+	err = row.Read(&u)
 	assert.NoError(err, "expect no error from reading the data")
 	assert.Equal(u.Gender, "female", "expect gender to be female")
 	assert.Equal(u.Contact.Address.City, "Beachwood", "should match city Beachwood")
 	assert.Equal(u.Contact.Region, "732", "should match region 732")
-	er, err := adbh.GetRow(
+	erow, err := adbh.GetRow(
 		userQ,
 		map[string]interface{}{
-			"@collection": c.Name(),
+			"@collection": conn.Name(),
 			"first":       "Pantu",
 			"last":        "Boka",
 		},
 	)
 	assert.NoErrorf(err, "expect no error from row query, received error %s", err)
-	assert.True(er.IsEmpty(), "expect empty resultset")
+	assert.True(erow.IsEmpty(), "expect empty resultset")
 }
 
 func TestTruncate(t *testing.T) {
 	t.Parallel()
-	c := setup(adbh, t)
-	defer teardown(c, t)
+	conn := setup(adbh, t)
+	defer teardown(t, conn)
 	assert := assert.New(t)
 	for _, g := range []string{"male", "female"} {
 		testGenderCount(&genderCountParams{
 			assert:     assert,
-			collection: c,
+			collection: conn,
 			gender:     g,
 			count:      int64(15),
 		})
 	}
-	err := adbh.Truncate(c.Name())
+	err := adbh.Truncate(conn.Name())
 	assert.NoErrorf(err, "expect no error from truncation, received error %s", err)
 	for _, g := range []string{"male", "female"} {
 		testGenderCount(&genderCountParams{
 			assert:     assert,
-			collection: c,
+			collection: conn,
 			gender:     g,
 			count:      int64(0),
 		})
@@ -306,7 +306,7 @@ func TestTruncate(t *testing.T) {
 }
 
 func testGenderCount(args *genderCountParams) {
-	gc, err := adbh.CountWithParams(
+	gcp, err := adbh.CountWithParams(
 		genderQ,
 		map[string]interface{}{
 			"@collection": args.collection.Name(),
@@ -314,7 +314,7 @@ func testGenderCount(args *genderCountParams) {
 		},
 	)
 	args.assert.NoErrorf(err, "expect no error from counting query, received error %s", err)
-	args.assert.Equalf(gc, args.count, "expect %d received %d", args.count, gc)
+	args.assert.Equalf(gcp, args.count, "expect %d received %d", args.count, gcp)
 }
 
 func testAllRows(rs *Resultset, assert *assert.Assertions, count int) {
@@ -327,14 +327,16 @@ func testAllRows(rs *Resultset, assert *assert.Assertions, count int) {
 	}
 }
 
-func testSearchRs(rs *Resultset, err error, t *testing.T) {
+func testSearchRs(t *testing.T, rs *Resultset, err error) {
+	t.Helper()
 	assert := assert.New(t)
 	assert.NoErrorf(err, "expect no error from search query, received error %s", err)
 	assert.False(rs.IsEmpty(), "expect resultset to be not empty")
 	testAllRows(rs, assert, 15)
 }
 
-func testSearchRsNoRow(rs *Resultset, err error, t *testing.T) {
+func testSearchRsNoRow(t *testing.T, rs *Resultset, err error) {
+	t.Helper()
 	assert := assert.New(t)
 	assert.NoErrorf(err, "expect no error from search query, received error %s", err)
 	assert.True(rs.IsEmpty(), "expect empty resultset")
