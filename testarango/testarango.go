@@ -11,6 +11,12 @@ import (
 	"github.com/dictyBase/arangomanager"
 )
 
+const (
+	aPort  = 8529
+	minLen = 6
+	maxLen = 8
+)
+
 // CheckArangoEnv checks for the presence of the following
 // environment variables
 //   ARANGO_HOST
@@ -27,25 +33,27 @@ func CheckArangoEnv() error {
 			return fmt.Errorf("env %s is not set", e)
 		}
 	}
+
 	return nil
 }
 
-// Generates a random string between a range(min and max) of length
+// Generates a random string between a range(min and max) of length.
 func RandomString(min, max int) string {
 	alphanum := []byte("abcdefghijklmnopqrstuvwxyz")
 	rand.Seed(time.Now().UTC().UnixNano())
 	size := min + rand.Intn(max-min)
-	b := make([]byte, size)
+	byt := make([]byte, size)
 	alen := len(alphanum)
 	for i := 0; i < size; i++ {
 		pos := rand.Intn(alen)
-		b[i] = alphanum[pos]
+		byt[i] = alphanum[pos]
 	}
-	return string(b)
+
+	return string(byt)
 }
 
 // TestArango is a container for managing a disposable database
-// instance
+// instance.
 type TestArango struct {
 	*arangomanager.ConnectParams
 	*arangomanager.Session
@@ -60,37 +68,38 @@ type TestArango struct {
 // isCreate toggles whether a random disposable test database
 // will be created during instantiation. It is false by default.
 func NewTestArangoFromEnv(isCreate bool) (*TestArango, error) {
-	ta := new(TestArango)
+	tra := new(TestArango)
 	if err := CheckArangoEnv(); err != nil {
-		return ta, err
+		return tra, err
 	}
-	ta.ConnectParams = &arangomanager.ConnectParams{
+	tra.ConnectParams = &arangomanager.ConnectParams{
 		User: os.Getenv("ARANGO_USER"),
 		Pass: os.Getenv("ARANGO_PASS"),
 		Host: os.Getenv("ARANGO_HOST"),
-		Port: 8529,
+		Port: aPort,
 	}
 	if len(os.Getenv("ARANGO_PORT")) > 0 {
 		aport, _ := strconv.Atoi(os.Getenv("ARANGO_PORT"))
-		ta.ConnectParams.Port = aport
+		tra.ConnectParams.Port = aport
 	}
 	sess, err := arangomanager.Connect(
-		ta.ConnectParams.Host,
-		ta.ConnectParams.User,
-		ta.ConnectParams.Pass,
-		ta.ConnectParams.Port,
+		tra.ConnectParams.Host,
+		tra.ConnectParams.User,
+		tra.ConnectParams.Pass,
+		tra.ConnectParams.Port,
 		false,
 	)
 	if err != nil {
-		return ta, err
+		return tra, err
 	}
-	ta.Session = sess
+	tra.Session = sess
 	if isCreate {
-		if err := ta.CreateTestDb(RandomString(6, 8), &driver.CreateDatabaseOptions{}); err != nil {
-			return ta, err
+		if err := tra.CreateTestDb(RandomString(minLen, maxLen), &driver.CreateDatabaseOptions{}); err != nil {
+			return tra, err
 		}
 	}
-	return ta, nil
+
+	return tra, nil
 }
 
 // NewTestArango is a constructor for TestArango instance from the given
@@ -98,38 +107,39 @@ func NewTestArangoFromEnv(isCreate bool) (*TestArango, error) {
 // isCreate toggles whether a random disposable test
 // database will be created during instantiation. It is false by default.
 func NewTestArango(user, pass, host string, port int, isCreate bool) (*TestArango, error) {
-	ta := new(TestArango)
-	ta.ConnectParams = &arangomanager.ConnectParams{
+	tra := new(TestArango)
+	tra.ConnectParams = &arangomanager.ConnectParams{
 		User: user,
 		Pass: pass,
 		Host: host,
 		Port: port,
 	}
 	sess, err := arangomanager.Connect(
-		ta.ConnectParams.Host,
-		ta.ConnectParams.User,
-		ta.ConnectParams.Pass,
-		ta.ConnectParams.Port,
+		tra.ConnectParams.Host,
+		tra.ConnectParams.User,
+		tra.ConnectParams.Pass,
+		tra.ConnectParams.Port,
 		false,
 	)
 	if err != nil {
-		return ta, err
+		return tra, err
 	}
-	ta.Session = sess
+	tra.Session = sess
 	if isCreate {
-		if err := ta.CreateTestDb(RandomString(6, 8), &driver.CreateDatabaseOptions{}); err != nil {
-			return ta, err
+		if err := tra.CreateTestDb(RandomString(minLen, maxLen), &driver.CreateDatabaseOptions{}); err != nil {
+			return tra, err
 		}
 	}
-	return ta, nil
+
+	return tra, nil
 }
 
-// CreateTestDb creates a test database of given name
+// CreateTestDb creates a test database of given name.
 func (ta *TestArango) CreateTestDb(name string, opt *driver.CreateDatabaseOptions) error {
-	err := ta.CreateDB(name, opt)
-	if err != nil {
+	if err := ta.CreateDB(name, opt); err != nil {
 		return err
 	}
 	ta.Database = name
+
 	return nil
 }

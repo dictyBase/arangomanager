@@ -8,27 +8,27 @@ import (
 	"github.com/fatih/structs"
 )
 
-// Result is a cursor for single row of data
+// Result is a cursor for single row of data.
 type Result struct {
 	cursor driver.Cursor
 	empty  bool
 }
 
-// IsEmpty checks for empty result
+// IsEmpty checks for empty result.
 func (r *Result) IsEmpty() bool {
 	return r.empty
 }
 
-// Read read the row of data to i interface
-func (r *Result) Read(i interface{}) error {
-	meta, err := r.cursor.ReadDocument(context.TODO(), i)
+// Read read the row of data to i interface.
+func (r *Result) Read(iface interface{}) error {
+	meta, err := r.cursor.ReadDocument(context.TODO(), iface)
 	if err != nil {
 		return fmt.Errorf("error in reading document %s", err)
 	}
-	if !structs.IsStruct(i) {
+	if !structs.IsStruct(iface) {
 		return nil
 	}
-	s := structs.New(i)
+	s := structs.New(iface)
 	if f, ok := s.FieldOk("DocumentMeta"); ok {
 		if f.IsEmbedded() {
 			if err := f.Set(meta); err != nil {
@@ -36,5 +36,6 @@ func (r *Result) Read(i interface{}) error {
 			}
 		}
 	}
+
 	return nil
 }

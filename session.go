@@ -10,7 +10,7 @@ import (
 	validator "github.com/go-playground/validator/v10"
 )
 
-// Session is a connected database client
+// Session is a connected database client.
 type Session struct {
 	client driver.Client
 }
@@ -23,7 +23,7 @@ func NewSessionFromClient(client driver.Client) *Session {
 	return &Session{client}
 }
 
-// Connect is a constructor for new client
+// Connect is a constructor for new client.
 func Connect(host, user, password string, port int, istls bool) (*Session, error) {
 	connConf := http.ConnectionConfig{
 		Endpoints: []string{
@@ -51,17 +51,18 @@ func Connect(host, user, password string, port int, istls bool) (*Session, error
 	if err != nil {
 		return &Session{}, fmt.Errorf("could not get a client instance %s", err)
 	}
+
 	return &Session{client}, nil
 }
 
 // NewSessionDb connects to arangodb and returns a new session
-// and database instances
+// and database instances.
 func NewSessionDb(connP *ConnectParams) (*Session, *Database, error) {
 	var sess *Session
-	var db *Database
+	var dbr *Database
 	validate := validator.New()
 	if err := validate.Struct(connP); err != nil {
-		return sess, db, err
+		return sess, dbr, fmt.Errorf("error in validation %s", err)
 	}
 	sess, err := Connect(
 		connP.Host,
@@ -71,21 +72,22 @@ func NewSessionDb(connP *ConnectParams) (*Session, *Database, error) {
 		connP.Istls,
 	)
 	if err != nil {
-		return sess, db, err
+		return sess, dbr, err
 	}
-	db, err = sess.DB(connP.Database)
+	dbr, err = sess.DB(connP.Database)
 	if err != nil {
-		return sess, db, err
+		return sess, dbr, err
 	}
-	return sess, db, nil
+
+	return sess, dbr, nil
 }
 
-// CurrentDB gets the default database(_system)
+// CurrentDB gets the default database(_system).
 func (s *Session) CurrentDB() (*Database, error) {
 	return s.getDatabase("_system")
 }
 
-// CreateDB creates database
+// CreateDB creates database.
 func (s *Session) CreateDB(name string, opt *driver.CreateDatabaseOptions) error {
 	ok, err := s.client.DatabaseExists(context.Background(), name)
 	if err != nil {
@@ -97,15 +99,16 @@ func (s *Session) CreateDB(name string, opt *driver.CreateDatabaseOptions) error
 			return fmt.Errorf("error in creating database %s %s", name, err)
 		}
 	}
+
 	return nil
 }
 
-// DB gets the database
+// DB gets the database.
 func (s *Session) DB(name string) (*Database, error) {
 	return s.getDatabase(name)
 }
 
-// CreateUser creates user
+// CreateUser creates user.
 func (s *Session) CreateUser(user, pass string) error {
 	ok, err := s.client.UserExists(context.Background(), user)
 	if err != nil {
@@ -118,10 +121,11 @@ func (s *Session) CreateUser(user, pass string) error {
 			return fmt.Errorf("error in creating user %s", err)
 		}
 	}
+
 	return nil
 }
 
-// GrantDB grants user permission to a database
+// GrantDB grants user permission to a database.
 func (s *Session) GrantDB(database, user, grant string) error {
 	ok, err := s.client.UserExists(context.Background(), user)
 	if err != nil {
@@ -142,6 +146,7 @@ func (s *Session) GrantDB(database, user, grant string) error {
 	if err != nil {
 		return fmt.Errorf("error in setting database access %s", err)
 	}
+
 	return nil
 }
 
@@ -155,12 +160,13 @@ func getGrant(g string) driver.Grant {
 	default:
 		grnt = driver.GrantNone
 	}
+
 	return grnt
 }
 func (s *Session) getDatabase(name string) (*Database, error) {
 	ok, err := s.client.DatabaseExists(context.Background(), name)
 	if err != nil {
-		return &Database{}, err
+		return &Database{}, fmt.Errorf("error in checking existing of database %s", err)
 	}
 	if !ok {
 		return &Database{}, fmt.Errorf("error in finding database named %s: %s", name, err)
@@ -169,5 +175,6 @@ func (s *Session) getDatabase(name string) (*Database, error) {
 	if err != nil {
 		return &Database{}, fmt.Errorf("unable to get database instance %s", err)
 	}
+
 	return &Database{dbh}, nil
 }

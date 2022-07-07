@@ -114,6 +114,7 @@ func (ud *userDate) UnmarshalJSON(in []byte) error {
 		return fmt.Errorf("error in parsing time %s", err)
 	}
 	ud.Time = t
+
 	return nil
 }
 
@@ -128,24 +129,26 @@ func checkArangoEnv() error {
 			return fmt.Errorf("env %s is not set", e)
 		}
 	}
+
 	return nil
 }
 
-// Generates a random string between a range(min and max) of length
+// Generates a random string between a range(min and max) of length.
 func randomString(min, max int) string {
 	alphanum := []byte("abcdefghijklmnopqrstuvwxyz")
 	rand.Seed(time.Now().UTC().UnixNano())
 	size := min + rand.Intn(max-min)
-	b := make([]byte, size)
+	byt := make([]byte, size)
 	alen := len(alphanum)
 	for i := 0; i < size; i++ {
 		pos := rand.Intn(alen)
-		b[i] = alphanum[pos]
+		byt[i] = alphanum[pos]
 	}
-	return string(b)
+
+	return string(byt)
 }
 
-func teardown(c driver.Collection, t *testing.T) {
+func teardown(t *testing.T, c driver.Collection) {
 	if err := c.Remove(context.Background()); err != nil {
 		t.Fatalf("unable to truncate collection %s %s", c.Name(), err)
 	}
