@@ -52,7 +52,7 @@ linters:
     - maintidx
     - misspell
     - nakedret
-    - nestif
+    # - nestif
     - nilerr
     - nlreturn
     - nolintlint
