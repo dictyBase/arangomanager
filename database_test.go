@@ -45,7 +45,7 @@ func TestMain(m *testing.M) {
 
 func TestCount(t *testing.T) {
 	t.Parallel()
-	conn := setup(adbh, t)
+	conn := setup(t, adbh)
 	defer teardown(t, conn)
 	fc, err := adbh.Count(fmt.Sprintf(genderQNoParam, conn.Name(), "female"))
 	assert := assert.New(t)
@@ -58,7 +58,7 @@ func TestCount(t *testing.T) {
 
 func TestCountWithParams(t *testing.T) {
 	t.Parallel()
-	conn := setup(adbh, t)
+	conn := setup(t, adbh)
 	defer teardown(t, conn)
 	assert := assert.New(t)
 	for _, g := range []string{"male", "female"} {
@@ -73,7 +73,7 @@ func TestCountWithParams(t *testing.T) {
 
 func TestCollection(t *testing.T) {
 	t.Parallel()
-	conn := setup(adbh, t)
+	conn := setup(t, adbh)
 	defer teardown(t, conn)
 	_, err := adbh.Collection(randomString(6, 8))
 	assert := assert.New(t)
@@ -85,7 +85,7 @@ func TestCollection(t *testing.T) {
 
 func TestCreateCollection(t *testing.T) {
 	t.Parallel()
-	conn := setup(adbh, t)
+	conn := setup(t, adbh)
 	defer teardown(t, conn)
 	_, err := adbh.CreateCollection(conn.Name(), nil)
 	assert := assert.New(t)
@@ -98,7 +98,7 @@ func TestCreateCollection(t *testing.T) {
 
 func TestFindOrCreateCollection(t *testing.T) {
 	t.Parallel()
-	c := setup(adbh, t)
+	c := setup(t, adbh)
 	defer teardown(t, c)
 	ec, err := adbh.FindOrCreateCollection(c.Name(), nil)
 	assert := assert.New(t)
@@ -112,7 +112,7 @@ func TestFindOrCreateCollection(t *testing.T) {
 
 func TestEnsureFullTextIndex(t *testing.T) {
 	t.Parallel()
-	c := setup(adbh, t)
+	c := setup(t, adbh)
 	defer teardown(t, c)
 	assert := assert.New(t)
 	name := "group"
@@ -129,7 +129,7 @@ func TestEnsureFullTextIndex(t *testing.T) {
 
 func TestEnsureGeoIndex(t *testing.T) {
 	t.Parallel()
-	c := setup(adbh, t)
+	c := setup(t, adbh)
 	defer teardown(t, c)
 	assert := assert.New(t)
 	name := "value"
@@ -146,7 +146,7 @@ func TestEnsureGeoIndex(t *testing.T) {
 
 func TestEnsureHashIndex(t *testing.T) {
 	t.Parallel()
-	c := setup(adbh, t)
+	c := setup(t, adbh)
 	defer teardown(t, c)
 	assert := assert.New(t)
 	name := "entry_id"
@@ -163,7 +163,7 @@ func TestEnsureHashIndex(t *testing.T) {
 
 func TestEnsurePersistentIndex(t *testing.T) {
 	t.Parallel()
-	c := setup(adbh, t)
+	c := setup(t, adbh)
 	defer teardown(t, c)
 	assert := assert.New(t)
 	name := "entry_id"
@@ -180,7 +180,7 @@ func TestEnsurePersistentIndex(t *testing.T) {
 
 func TestEnsureSkipListIndex(t *testing.T) {
 	t.Parallel()
-	c := setup(adbh, t)
+	c := setup(t, adbh)
 	defer teardown(t, c)
 	assert := assert.New(t)
 	name := "created_at"
@@ -197,7 +197,7 @@ func TestEnsureSkipListIndex(t *testing.T) {
 
 func TestSearchRowsWithParams(t *testing.T) {
 	t.Parallel()
-	conn := setup(adbh, t)
+	conn := setup(t, adbh)
 	defer teardown(t, conn)
 	frs, err := adbh.SearchRows(
 		genderQ,
@@ -219,7 +219,7 @@ func TestSearchRowsWithParams(t *testing.T) {
 
 func TestSearchRows(t *testing.T) {
 	t.Parallel()
-	c := setup(adbh, t)
+	c := setup(t, adbh)
 	defer teardown(t, c)
 	frs, err := adbh.Search(fmt.Sprintf(genderQNoParam, c.Name(), "female"))
 	testSearchRs(t, frs, err)
@@ -229,7 +229,7 @@ func TestSearchRows(t *testing.T) {
 
 func TestDo(t *testing.T) {
 	t.Parallel()
-	c := setup(adbh, t)
+	c := setup(t, adbh)
 	defer teardown(t, c)
 	err := adbh.Do(
 		fmt.Sprintf(userIns, c.Name()),
@@ -249,7 +249,7 @@ func TestDo(t *testing.T) {
 
 func TestGetRow(t *testing.T) {
 	t.Parallel()
-	conn := setup(adbh, t)
+	conn := setup(t, adbh)
 	defer teardown(t, conn)
 	row, err := adbh.GetRow(
 		userQ,
@@ -282,7 +282,7 @@ func TestGetRow(t *testing.T) {
 
 func TestTruncate(t *testing.T) {
 	t.Parallel()
-	conn := setup(adbh, t)
+	conn := setup(t, adbh)
 	defer teardown(t, conn)
 	assert := assert.New(t)
 	for _, g := range []string{"male", "female"} {

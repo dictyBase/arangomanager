@@ -174,7 +174,7 @@ func GenQualifiedAQLFilterStatement(fmap map[string]string, filters []*Filter) (
 	for _, flt := range filters {
 		// check if operator is used for array item
 		if _, ok := amap[flt.Operator]; ok {
-			str := randString(10)
+			str := randString(strSeedLen)
 			if amap[flt.Operator] == "=~" {
 				stmts["let"] = append(stmts["let"],
 					fmt.Sprintf(`
@@ -240,18 +240,17 @@ func GenQualifiedAQLFilterStatement(fmap map[string]string, filters []*Filter) (
 
 // GenAQLFilterStatement generates an AQL(arangodb query language) compatible
 // filter query statement.
-func GenAQLFilterStatement(p *StatementParameters) (string, error) {
-	fmap := p.Fmap
-	filters := p.Filters
-	inner := p.Doc
-	vert := p.Vert
+func GenAQLFilterStatement(prms *StatementParameters) (string, error) {
+	fmap := prms.Fmap
+	filters := prms.Filters
+	inner := prms.Doc
 	lmap := map[string]string{",": "OR", ";": "AND"}
 	omap := getOperatorMap()
 	dmap := getDateOperatorMap()
 	amap := getArrayOperatorMap()
 	stmts := arraylist.New()
-	if len(vert) > 0 {
-		inner = vert
+	if len(prms.Vert) > 0 {
+		inner = prms.Vert
 	}
 	for _, flt := range filters {
 		// check if operator is used for array item

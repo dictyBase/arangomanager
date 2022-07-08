@@ -51,6 +51,9 @@ const (
 			}
 		} INTO %s
 	`
+	aPort  = 8529
+	minLen = 10
+	maxLen = 15
 )
 
 type testArango struct {
@@ -149,55 +152,59 @@ func randomString(min, max int) string {
 }
 
 func teardown(t *testing.T, c driver.Collection) {
+	t.Helper()
 	if err := c.Remove(context.Background()); err != nil {
 		t.Fatalf("unable to truncate collection %s %s", c.Name(), err)
 	}
 }
 
-func setup(db *Database, t *testing.T) driver.Collection {
-	c, err := db.FindOrCreateCollection(randomString(10, 15), &driver.CreateCollectionOptions{})
+func setup(t *testing.T, db *Database) driver.Collection {
+	t.Helper()
+	coll, err := db.FindOrCreateCollection(randomString(minLen, maxLen), &driver.CreateCollectionOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = loadTestData(c); err != nil {
+	if err = loadTestData(coll); err != nil {
 		t.Fatal(err)
 	}
-	return c
+
+	return coll
 }
 
 func newTestArangoFromEnv(isCreate bool) (*testArango, error) {
-	ta := new(testArango)
+	tra := new(testArango)
 	if err := checkArangoEnv(); err != nil {
-		return ta, err
+		return tra, err
 	}
-	ta.ConnectParams = &ConnectParams{
+	tra.ConnectParams = &ConnectParams{
 		User: os.Getenv("ARANGO_USER"),
 		Pass: os.Getenv("ARANGO_PASS"),
 		Host: os.Getenv("ARANGO_HOST"),
-		Port: 8529,
+		Port: aPort,
 	}
 	if len(os.Getenv("ARANGO_PORT")) > 0 {
 		aport, _ := strconv.Atoi(os.Getenv("ARANGO_PORT"))
-		ta.ConnectParams.Port = aport
+		tra.ConnectParams.Port = aport
 	}
 	sess, err := Connect(
-		ta.ConnectParams.Host,
-		ta.ConnectParams.User,
-		ta.ConnectParams.Pass,
-		ta.ConnectParams.Port,
+		tra.ConnectParams.Host,
+		tra.ConnectParams.User,
+		tra.ConnectParams.Pass,
+		tra.ConnectParams.Port,
 		false,
 	)
 	if err != nil {
-		return ta, err
+		return tra, err
 	}
-	ta.Session = sess
-	ta.Database = randomString(6, 8)
+	tra.Session = sess
+	tra.Database = randomString(minLen, maxLen)
 	if isCreate {
-		if err := sess.CreateDB(ta.Database, &driver.CreateDatabaseOptions{}); err != nil {
-			return ta, err
+		if err := sess.CreateDB(tra.Database, &driver.CreateDatabaseOptions{}); err != nil {
+			return tra, err
 		}
 	}
-	return ta, nil
+
+	return tra, nil
 }
 
 func getReader() (io.Reader, error) {
@@ -206,30 +213,40 @@ func getReader() (io.Reader, error) {
 	if err != nil {
 		return buff, fmt.Errorf("unable to get current dir %s", err)
 	}
-	return os.Open(
+	fhr, err := os.Open(
 		filepath.Join(
 			dir, "testdata", "names.json",
 		),
 	)
+	if err != nil {
+		return fhr, fmt.Errorf("error in opening file %s", err)
+	}
+
+	return fhr, nil
 }
 
-func loadTestData(c driver.Collection) error {
+func loadTestData(coll driver.Collection) error {
 	reader, err := getReader()
 	if err != nil {
 		return err
 	}
 	dec := json.NewDecoder(reader)
-	var au []*testUser
+	var ausr []*testUser
 	for {
-		var u *testUser
-		if err := dec.Decode(&u); err != nil {
+		var usr *testUser
+		if err := dec.Decode(&usr); err != nil {
 			if err == io.EOF {
 				break
 			}
-			return err
+
+			return fmt.Errorf("error in decoding %s", err)
 		}
-		au = append(au, u)
+		ausr = append(ausr, usr)
 	}
-	_, err = c.ImportDocuments(context.Background(), au, &driver.ImportDocumentOptions{Complete: true})
-	return err
+	_, err = coll.ImportDocuments(context.Background(), ausr, &driver.ImportDocumentOptions{Complete: true})
+	if err != nil {
+		return fmt.Errorf("error in importing document %s", err)
+	}
+
+	return nil
 }

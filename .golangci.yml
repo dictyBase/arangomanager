@@ -27,7 +27,7 @@ linters:
     - asciicheck
     - bodyclose
     - bidichk
-    - cyclop 
+    # - cyclop 
     - deadcode
     - decorder
     - depguard

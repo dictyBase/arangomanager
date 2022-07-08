@@ -8,13 +8,13 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: set up nodejs
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
-            node-version: 14.16.1
+            node-version: 16
       - name: install semantic release
         run: npm i -g semantic-release@17.x
       - name: check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
