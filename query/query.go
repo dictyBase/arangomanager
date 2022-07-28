@@ -14,6 +14,27 @@ import (
 const (
 	filterStrLen = 5
 	strSeedLen   = 10
+	arrMatchTmpl = `
+	      LET %s = (
+	 		FOR x IN %s.%s[*]
+				FILTER CONTAINS(x, LOWER('%s')) 
+				LIMIT 1 
+				RETURN 1
+		)
+	`
+	arrEqualTmpl = `
+		LET %s = (
+				FILTER '%s' IN %s.%s[*] 
+				RETURN 1
+		)
+	`
+	arrNotEqualTmpl = `
+		LET %s = (
+				FILTER '%s' NOT IN %s.%s[*]
+				RETURN 1
+		)
+	`
+	dateTmpl = "%s.%s %s DATE_ISO8601('%s')"
 )
 
 var arrToAQL = map[string]string{
@@ -256,56 +277,20 @@ func GenAQLFilterStatement(prms *StatementParameters) (string, error) {
 		// check if operator is used for array item
 		if _, ok := amap[flt.Operator]; ok {
 			str := randString(strSeedLen)
-			if amap[flt.Operator] == "=~" {
-				stmts.Insert(0,
-					fmt.Sprintf(`
-							LET %s = (
-								FOR x IN %s.%s[*]
-									FILTER CONTAINS(x, LOWER('%s')) 
-									LIMIT 1 
-									RETURN 1
-							)
-						`,
-						str,
-						inner,
-						fmap[flt.Field],
-						flt.Value,
-					),
-				)
-			}
-			if amap[flt.Operator] == "==" {
-				stmts.Insert(0,
-					fmt.Sprintf(`
-							LET %s = (
-								FILTER '%s' IN %s.%s[*] 
-								RETURN 1
-							)
-						`,
-						str,
-						flt.Value,
-						inner,
-						fmap[flt.Field],
-					),
-				)
-			}
-			if amap[flt.Operator] == "!=" {
-				stmts.Insert(0,
-					fmt.Sprintf(`
-							LET %s = (
-								FILTER '%s' NOT IN %s.%s[*]
-								RETURN 1
-							)
-						`,
-						str,
-						flt.Value,
-						inner,
-						fmap[flt.Field],
-					),
+			switch amap[flt.Operator] {
+			case "=~":
+				stmts.Insert(0, fmt.Sprintf(arrMatchTmpl, str, inner, fmap[flt.Field], flt.Value))
+			case "==":
+				stmts.Insert(0, fmt.Sprintf(arrEqualTmpl, str, flt.Value, inner, fmap[flt.Field]))
+			case "!=":
+				stmts.Insert(
+					0,
+					fmt.Sprintf(arrNotEqualTmpl, str, flt.Value, inner, fmap[flt.Field]),
 				)
 			}
 			stmts.Add(fmt.Sprintf("LENGTH(%s) > 0", str))
 			// if there's logic, write that too
-			if len(flt.Logic) != 0 {
+			if len(flt.Logic) > 0 {
 				stmts.Add(fmt.Sprintf("\n %s ", lmap[flt.Logic]))
 			}
 		} else if _, ok := dmap[flt.Operator]; ok {
@@ -313,27 +298,16 @@ func GenAQLFilterStatement(prms *StatementParameters) (string, error) {
 				return "", err
 			}
 			// write time conversion into AQL query
-			stmts.Add(fmt.Sprintf(
-				"%s.%s %s DATE_ISO8601('%s')",
-				inner,
-				fmap[flt.Field],
-				omap[flt.Operator],
-				flt.Value,
-			))
+			stmts.Add(fmt.Sprintf(dateTmpl, inner, fmap[flt.Field], omap[flt.Operator], flt.Value))
 			if len(flt.Logic) != 0 {
 				stmts.Add(fmt.Sprintf("\n %s ", lmap[flt.Logic]))
 			}
 		} else {
 			// write the rest of AQL statement based on regular string data
-			stmts.Add(
-				fmt.Sprintf(
-					"%s.%s %s %s",
-					inner,
-					fmap[flt.Field],
-					omap[flt.Operator],
-					addQuoteToStrings(flt.Operator, flt.Value),
-				),
-			)
+			stmts.Add(fmt.Sprintf(
+				"%s.%s %s %s", inner, fmap[flt.Field],
+				omap[flt.Operator], addQuoteToStrings(flt.Operator, flt.Value),
+			))
 			if len(flt.Logic) != 0 {
 				stmts.Add(fmt.Sprintf("\n %s ", lmap[flt.Logic]))
 			}
