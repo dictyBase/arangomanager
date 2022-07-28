@@ -100,6 +100,12 @@ func buildDate() (*regexp.Regexp, error) {
 	return rgxp, nil
 }
 
+func getLogic(input string) string {
+	lmap := map[string]string{",": "OR", ";": "AND"}
+
+	return lmap[input]
+}
+
 func getOperatorMap() map[string]string {
 	return map[string]string{
 		"==":  "==",
@@ -121,6 +127,45 @@ func getOperatorMap() map[string]string {
 		"@!~": "!~",
 		"@!=": "!=",
 	}
+}
+
+func getOperator(opt string) string {
+	omap := getOperatorMap()
+
+	return omap[opt]
+}
+
+func getArrayOpertaor(opt string) string {
+	amap := getArrayOperatorMap()
+
+	return amap[opt]
+}
+
+func getDateOperator(opt string) string {
+	dmap := getDateOperatorMap()
+
+	return dmap[opt]
+}
+
+func hasOperator(opt string) bool {
+	omap := getOperatorMap()
+	_, isok := omap[opt]
+
+	return isok
+}
+
+func hasDateOperator(opt string) bool {
+	dmap := getDateOperatorMap()
+	_, isok := dmap[opt]
+
+	return isok
+}
+
+func hasArrayOperator(opt string) bool {
+	amap := getArrayOperatorMap()
+	_, isok := amap[opt]
+
+	return isok
 }
 
 // map values that are predefined as dates.
@@ -263,21 +308,16 @@ func GenQualifiedAQLFilterStatement(fmap map[string]string, filters []*Filter) (
 // filter query statement.
 func GenAQLFilterStatement(prms *StatementParameters) (string, error) {
 	fmap := prms.Fmap
-	filters := prms.Filters
 	inner := prms.Doc
-	lmap := map[string]string{",": "OR", ";": "AND"}
-	omap := getOperatorMap()
-	dmap := getDateOperatorMap()
-	amap := getArrayOperatorMap()
 	stmts := arraylist.New()
 	if len(prms.Vert) > 0 {
 		inner = prms.Vert
 	}
-	for _, flt := range filters {
-		// check if operator is used for array item
-		if _, ok := amap[flt.Operator]; ok {
+	for _, flt := range prms.Filters {
+		switch {
+		case hasArrayOperator(flt.Operator):
 			str := randString(strSeedLen)
-			switch amap[flt.Operator] {
+			switch getArrayOpertaor(flt.Operator) {
 			case "=~":
 				stmts.Insert(0, fmt.Sprintf(arrMatchTmpl, str, inner, fmap[flt.Field], flt.Value))
 			case "==":
@@ -289,28 +329,25 @@ func GenAQLFilterStatement(prms *StatementParameters) (string, error) {
 				)
 			}
 			stmts.Add(fmt.Sprintf("LENGTH(%s) > 0", str))
-			// if there's logic, write that too
-			if len(flt.Logic) > 0 {
-				stmts.Add(fmt.Sprintf("\n %s ", lmap[flt.Logic]))
-			}
-		} else if _, ok := dmap[flt.Operator]; ok {
+		case hasDateOperator(flt.Operator):
 			if err := dateValidator(flt.Value); err != nil {
 				return "", err
 			}
 			// write time conversion into AQL query
-			stmts.Add(fmt.Sprintf(dateTmpl, inner, fmap[flt.Field], omap[flt.Operator], flt.Value))
-			if len(flt.Logic) != 0 {
-				stmts.Add(fmt.Sprintf("\n %s ", lmap[flt.Logic]))
-			}
-		} else {
+			stmts.Add(
+				fmt.Sprintf(dateTmpl, inner, fmap[flt.Field], getOperator(flt.Operator), flt.Value),
+			)
+		case hasOperator(flt.Operator):
 			// write the rest of AQL statement based on regular string data
 			stmts.Add(fmt.Sprintf(
 				"%s.%s %s %s", inner, fmap[flt.Field],
-				omap[flt.Operator], addQuoteToStrings(flt.Operator, flt.Value),
+				getOperator(flt.Operator), addQuoteToStrings(flt.Operator, flt.Value),
 			))
-			if len(flt.Logic) != 0 {
-				stmts.Add(fmt.Sprintf("\n %s ", lmap[flt.Logic]))
-			}
+		default:
+			return "", fmt.Errorf("unknown opertaor for parsing %s", flt.Operator)
+		}
+		if len(flt.Logic) > 0 {
+			stmts.Add(fmt.Sprintf("\n %s ", getLogic(flt.Logic)))
 		}
 	}
 
