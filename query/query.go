@@ -37,11 +37,6 @@ const (
 	dateTmpl = "%s.%s %s DATE_ISO8601('%s')"
 )
 
-var arrToAQL = map[string]string{
-	"==": "IN",
-	"!=": "NOT IN",
-}
-
 // Filter is a container for filter parameters.
 type Filter struct {
 	// Field of the object on which the filter will be applied
@@ -98,95 +93,6 @@ func buildDate() (*regexp.Regexp, error) {
 	}
 
 	return rgxp, nil
-}
-
-func getLogic(input string) string {
-	lmap := map[string]string{",": "OR", ";": "AND"}
-
-	return lmap[input]
-}
-
-func getOperatorMap() map[string]string {
-	return map[string]string{
-		"==":  "==",
-		"===": "==",
-		"!=":  "!=",
-		">":   ">",
-		"<":   "<",
-		">=":  ">=",
-		"<=":  "<=",
-		"=~":  "=~",
-		"!~":  "!~",
-		"$==": "==",
-		"$>":  ">",
-		"$<":  "<",
-		"$>=": ">=",
-		"$<=": "<=",
-		"@==": "==",
-		"@=~": "=~",
-		"@!~": "!~",
-		"@!=": "!=",
-	}
-}
-
-func getOperator(opt string) string {
-	omap := getOperatorMap()
-
-	return omap[opt]
-}
-
-func getArrayOpertaor(opt string) string {
-	amap := getArrayOperatorMap()
-
-	return amap[opt]
-}
-
-func getDateOperator(opt string) string {
-	dmap := getDateOperatorMap()
-
-	return dmap[opt]
-}
-
-func hasOperator(opt string) bool {
-	omap := getOperatorMap()
-	_, isok := omap[opt]
-
-	return isok
-}
-
-func hasDateOperator(opt string) bool {
-	dmap := getDateOperatorMap()
-	_, isok := dmap[opt]
-
-	return isok
-}
-
-func hasArrayOperator(opt string) bool {
-	amap := getArrayOperatorMap()
-	_, isok := amap[opt]
-
-	return isok
-}
-
-// map values that are predefined as dates.
-func getDateOperatorMap() map[string]string {
-	return map[string]string{
-		"$==": "==",
-		"$>":  ">",
-		"$<":  "<",
-		"$>=": ">=",
-		"$<=": "<=",
-	}
-}
-
-// map values that are predefined as array items.
-func getArrayOperatorMap() map[string]string {
-	return map[string]string{
-		"@==": "==",
-		"@=~": "=~",
-		"@!~": "!~",
-		"@!=": "!=",
-	}
 }
 
 // ParseFilterString parses a predefined filter string to Filter
@@ -307,7 +213,6 @@ func GenQualifiedAQLFilterStatement(fmap map[string]string, filters []*Filter) (
 // GenAQLFilterStatement generates an AQL(arangodb query language) compatible
 // filter query statement.
 func GenAQLFilterStatement(prms *StatementParameters) (string, error) {
-	fmap := prms.Fmap
 	inner := prms.Doc
 	stmts := arraylist.New()
 	if len(prms.Vert) > 0 {
@@ -316,31 +221,40 @@ func GenAQLFilterStatement(prms *StatementParameters) (string, error) {
 	for _, flt := range prms.Filters {
 		switch {
 		case hasArrayOperator(flt.Operator):
-			str := randString(strSeedLen)
+			randStr := randString(strSeedLen)
 			switch getArrayOpertaor(flt.Operator) {
 			case "=~":
-				stmts.Insert(0, fmt.Sprintf(arrMatchTmpl, str, inner, fmap[flt.Field], flt.Value))
+				stmts.Insert(
+					0,
+					fmt.Sprintf(arrMatchTmpl, randStr, inner, prms.Fmap[flt.Field], flt.Value),
+				)
 			case "==":
-				stmts.Insert(0, fmt.Sprintf(arrEqualTmpl, str, flt.Value, inner, fmap[flt.Field]))
+				stmts.Insert(
+					0,
+					fmt.Sprintf(arrEqualTmpl, randStr, flt.Value, inner, prms.Fmap[flt.Field]),
+				)
 			case "!=":
 				stmts.Insert(
 					0,
-					fmt.Sprintf(arrNotEqualTmpl, str, flt.Value, inner, fmap[flt.Field]),
+					fmt.Sprintf(arrNotEqualTmpl, randStr, flt.Value, inner, prms.Fmap[flt.Field]),
 				)
 			}
-			stmts.Add(fmt.Sprintf("LENGTH(%s) > 0", str))
+			stmts.Add(fmt.Sprintf("LENGTH(%s) > 0", randStr))
 		case hasDateOperator(flt.Operator):
 			if err := dateValidator(flt.Value); err != nil {
 				return "", err
 			}
 			// write time conversion into AQL query
 			stmts.Add(
-				fmt.Sprintf(dateTmpl, inner, fmap[flt.Field], getOperator(flt.Operator), flt.Value),
+				fmt.Sprintf(
+					dateTmpl, inner, prms.Fmap[flt.Field],
+					getOperator(flt.Operator), flt.Value,
+				),
 			)
 		case hasOperator(flt.Operator):
 			// write the rest of AQL statement based on regular string data
 			stmts.Add(fmt.Sprintf(
-				"%s.%s %s %s", inner, fmap[flt.Field],
+				"%s.%s %s %s", inner, prms.Fmap[flt.Field],
 				getOperator(flt.Operator), addQuoteToStrings(flt.Operator, flt.Value),
 			))
 		default:
