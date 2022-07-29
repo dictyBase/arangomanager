@@ -12,6 +12,7 @@ import (
 )
 
 const (
+	charSet      = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	filterStrLen = 5
 	strSeedLen   = 10
 	arrMatchTmpl = `
@@ -36,6 +37,8 @@ const (
 	`
 	dateTmpl = "%s.%s %s DATE_ISO8601('%s')"
 )
+
+var seedRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 // Filter is a container for filter parameters.
 type Filter struct {
@@ -325,31 +328,22 @@ func dateValidator(str string) error {
 	if err != nil {
 		return err
 	}
-	m := dre.FindString(str)
-	if len(m) == 0 {
+	mtch := dre.FindString(str)
+	if len(mtch) == 0 {
 		return fmt.Errorf("error in validating date %s", str)
 	}
 	// grab valid date and parse to time object
-	if _, err := now.Parse(m); err != nil {
+	if _, err := now.Parse(mtch); err != nil {
 		return fmt.Errorf("could not parse date %s %s", str, err)
 	}
 
 	return nil
 }
 
-const (
-	charSet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-)
-
-var seedRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
-
 func stringWithCharset(length int, charset string) string {
 	var byt []byte
 	for i := 0; i < length; i++ {
-		byt = append(
-			byt,
-			charset[seedRand.Intn(len(charset))],
-		)
+		byt = append(byt, charset[seedRand.Intn(len(charset))])
 	}
 
 	return string(byt)
