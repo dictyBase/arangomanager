@@ -12,6 +12,7 @@ import (
 )
 
 const (
+	logicIdx     = 2
 	charSet      = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	filterStrLen = 5
 	strSeedLen   = 10
@@ -263,12 +264,45 @@ func GenAQLFilterStatement(prms *StatementParameters) (string, error) {
 		default:
 			return "", fmt.Errorf("unknown opertaor for parsing %s", flt.Operator)
 		}
-		if len(flt.Logic) > 0 {
-			stmts.Add(fmt.Sprintf("\n %s ", getLogic(flt.Logic)))
-		}
+		addLogic(stmts, flt)
 	}
 
 	return toString(stmts), nil
+}
+
+func addLogic(stmts *arraylist.List, flt *Filter) {
+	currSize := stmts.Size()
+	if len(flt.Logic) == 0 {
+		addClosingParen(stmts, currSize)
+
+		return
+	}
+	logic := getLogic(flt.Logic)
+	switch logic {
+	case "OR":
+		addStartingParen(stmts, currSize)
+	case "AND":
+		addClosingParen(stmts, currSize)
+	}
+	stmts.Add(fmt.Sprintf("\n %s ", logic))
+}
+
+func addStartingParen(stmts *arraylist.List, currSize int) {
+	elem, _ := stmts.Get(currSize - logicIdx)
+	if val, ok := elem.(string); ok {
+		if strings.TrimSpace(val) == "AND" {
+			stmts.Insert(currSize-1, " ( ")
+		}
+	}
+}
+
+func addClosingParen(stmts *arraylist.List, currSize int) {
+	elem, _ := stmts.Get(currSize - logicIdx)
+	if val, ok := elem.(string); ok {
+		if strings.TrimSpace(val) == "OR" {
+			stmts.Add(" ) ")
+		}
+	}
 }
 
 func toFullStatement(mst map[string][]string) string {
