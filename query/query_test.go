@@ -47,7 +47,10 @@ func setupTestArango(
 	_, err = dbh.CreateCollection(crnd, &driver.CreateCollectionOptions{})
 	if err != nil {
 		errDbh := dbh.Drop()
-		assert.NoError(errDbh, "should not produce any error from database removal")
+		assert.NoError(
+			errDbh,
+			"should not produce any error from database removal",
+		)
 	}
 
 	return dbh, crnd
@@ -56,6 +59,25 @@ func setupTestArango(
 func cleanupAfterEach(assert *require.Assertions, dbh *arangomanager.Database) {
 	err := dbh.Drop()
 	assert.NoError(err, "should not produce any error from database removal")
+}
+
+func TestInvalidFilter(t *testing.T) {
+	t.Parallel()
+	assert := require.New(t)
+	filters := []*Filter{
+		{Field: "sport", Operator: "+++", Value: "football", Logic: "AND"},
+		{
+			Field:    "email",
+			Operator: "^^^",
+			Value:    "gmail@gmail.com",
+			Logic:    "AND",
+		},
+		{Field: "tag", Operator: "^^^", Value: "bozama"},
+	}
+	_, err := GenAQLFilterStatement(
+		&StatementParameters{Fmap: fmap, Filters: filters, Doc: "doc"},
+	)
+	assert.Error(err, "expect to have error with filter operator")
 }
 
 func TestParseFilterString(t *testing.T) {
