@@ -8,10 +8,10 @@ of the test cycle.
 
 Prerequisites
 
-	* An existing and running instance of arangodb
-	* An existing user with administrative rights to create any
-	  random database. The root user could also be used, however
-	  care must be taken.
+  - An existing and running instance of arangodb
+  - An existing user with administrative rights to create any
+    random database. The root user could also be used, however
+    care must be taken.
 
 Usage
 

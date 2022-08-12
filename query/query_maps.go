@@ -46,12 +46,6 @@ func getArrayOpertaor(opt string) string {
 	return amap[opt]
 }
 
-func getDateOperator(opt string) string {
-	dmap := getDateOperatorMap()
-
-	return dmap[opt]
-}
-
 func hasOperator(opt string) bool {
 	omap := getOperatorMap()
 	_, isok := omap[opt]
