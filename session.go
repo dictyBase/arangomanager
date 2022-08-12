@@ -97,7 +97,7 @@ func (s *Session) CreateDB(
 	name string,
 	opt *driver.CreateDatabaseOptions,
 ) error {
-	ok, err := s.client.DatabaseExists(context.Background(), name)
+	isOk, err := s.client.DatabaseExists(context.Background(), name)
 	if err != nil {
 		return fmt.Errorf(
 			"error in checking existence of database %s %s",
@@ -105,7 +105,7 @@ func (s *Session) CreateDB(
 			err,
 		)
 	}
-	if !ok {
+	if !isOk {
 		_, err = s.client.CreateDatabase(context.Background(), name, opt)
 		if err != nil {
 			return fmt.Errorf("error in creating database %s %s", name, err)
@@ -184,14 +184,14 @@ func getGrant(g string) driver.Grant {
 	return grnt
 }
 func (s *Session) getDatabase(name string) (*Database, error) {
-	ok, err := s.client.DatabaseExists(context.Background(), name)
+	isOk, err := s.client.DatabaseExists(context.Background(), name)
 	if err != nil {
 		return &Database{}, fmt.Errorf(
 			"error in checking existing of database %s",
 			err,
 		)
 	}
-	if !ok {
+	if !isOk {
 		return &Database{}, fmt.Errorf(
 			"error in finding database named %s: %s",
 			name,
