@@ -2,7 +2,6 @@ package query
 
 import (
 	"fmt"
-	"log"
 	"testing"
 
 	driver "github.com/arangodb/go-driver"
@@ -34,10 +33,6 @@ var qmap = map[string]string{
 	"label":      "v.label",
 }
 
-var gta *testarango.TestArango
-
-type testFilterFn func(assert *require.Assertions, dbh *arangomanager.Database)
-
 func setupTestArango(
 	assert *require.Assertions,
 ) (*arangomanager.Database, string) {
@@ -51,16 +46,16 @@ func setupTestArango(
 	crnd := testarango.RandomString(minLen, maxLen)
 	_, err = dbh.CreateCollection(crnd, &driver.CreateCollectionOptions{})
 	if err != nil {
-		e := dbh.Drop()
-		assert.NoError(e, "should not produce any error from database removal")
+		errDbh := dbh.Drop()
+		assert.NoError(errDbh, "should not produce any error from database removal")
 	}
+
 	return dbh, crnd
 }
 
 func cleanupAfterEach(assert *require.Assertions, dbh *arangomanager.Database) {
 	err := dbh.Drop()
 	assert.NoError(err, "should not produce any error from database removal")
-
 }
 
 func TestParseFilterString(t *testing.T) {
@@ -107,11 +102,11 @@ func TestParseFilterString(t *testing.T) {
 	assert.Len(b, 0, "should have empty slice since regex doesn't match string")
 }
 
-func TestGenQualifiedAQLFilterStatement(t *testing.T) {
+func TestQualifiedAQLStatement(t *testing.T) {
 	t.Parallel()
 	assert := require.New(t)
-	defer func() {
-	}()
+	dbh, cstr := setupTestArango(assert)
+	defer cleanupAfterEach(assert, dbh)
 	// test string equals with OR operator
 	f, err := ParseFilterString(
 		"email===mahomes@gmail.com,email===brees@gmail.com",
@@ -127,22 +122,22 @@ func TestGenQualifiedAQLFilterStatement(t *testing.T) {
 		"FILTER fizz.identifier == 'mahomes@gmail.com'\n OR fizz.identifier == 'brees@gmail.com'",
 		"should match filter statement",
 	)
-	err = dbh.ValidateQ(genFullQualifiedStmt(nqa, "fizz", crnd))
+	err = dbh.ValidateQ(genFullQualifiedStmt(nqa, "fizz", cstr))
 	assert.NoError(err, "should not have any invalid AQL query")
 	// test item substring for quotes
 	qf, err := ParseFilterString("label=~GWDI")
 	assert.NoError(err, "should not return any parsing error")
-	qs, err := GenQualifiedAQLFilterStatement(qmap, qf)
+	qsa, err := GenQualifiedAQLFilterStatement(qmap, qf)
 	assert.NoError(
 		err,
 		"should not return any error when generating AQL filter statement",
 	)
 	assert.Equal(
-		qs,
+		qsa,
 		"FILTER v.label =~ 'GWDI'",
 		"should contain GWDI substring",
 	)
-	err = dbh.ValidateQ(genFullQualifiedStmt(qs, "v", crnd))
+	err = dbh.ValidateQ(genFullQualifiedStmt(qsa, "v", cstr))
 	assert.NoError(err, "should not have any invalid AQL query")
 	// test date equals
 	df, err := ParseFilterString("created_at$==2019,created_at$==2018")
@@ -156,7 +151,7 @@ func TestGenQualifiedAQLFilterStatement(t *testing.T) {
 		dfl,
 		"FILTER foo.created_at == DATE_ISO8601('2019')\n OR foo.created_at == DATE_ISO8601('2018')",
 	)
-	err = dbh.ValidateQ(genFullQualifiedStmt(dfl, "foo", crnd))
+	err = dbh.ValidateQ(genFullQualifiedStmt(dfl, "foo", cstr))
 	assert.NoError(err, "should not have any invalid AQL query")
 	// test item in array equals
 	af, err := ParseFilterString("sport@==basketball")
@@ -176,7 +171,7 @@ func TestGenQualifiedAQLFilterStatement(t *testing.T) {
 		"FILTER 'basketball' IN bar.game[*]",
 		"should contain an array containing statement",
 	)
-	err = dbh.ValidateQ(genFullQualifiedStmt(afn, "bar", crnd))
+	err = dbh.ValidateQ(genFullQualifiedStmt(afn, "bar", cstr))
 	assert.NoError(err, "should not have any invalid AQL query")
 	// test item substring in array
 	af2, err := ParseFilterString("sport@=~basket")
@@ -192,7 +187,7 @@ func TestGenQualifiedAQLFilterStatement(t *testing.T) {
 		"should contain FILTER CONTAINS statement, indicating array item substring",
 	)
 	assert.Contains(an2, "LIMIT 1", "should match limit of one")
-	err = dbh.ValidateQ(genFullQualifiedStmt(an2, "bar", crnd))
+	err = dbh.ValidateQ(genFullQualifiedStmt(an2, "bar", cstr))
 	assert.NoError(err, "should not have any invalid AQL query")
 	// test item in array not equals
 	bf, err := ParseFilterString("sport@!=banana,sport@!=apple")
@@ -218,33 +213,15 @@ func TestGenQualifiedAQLFilterStatement(t *testing.T) {
 		"FILTER 'apple' NOT IN bar.game[*]",
 		"should contain filter with NOT IN operator with collection and column name",
 	)
-	err = dbh.ValidateQ(genFullQualifiedStmt(bns, "bar", crnd))
+	err = dbh.ValidateQ(genFullQualifiedStmt(bns, "bar", cstr))
 	assert.NoError(err, "should not have any invalid AQL query")
 }
 
 func TestMixedLogicStatement(t *testing.T) {
 	t.Parallel()
 	assert := require.New(t)
-	ta, err := testarango.NewTestArangoFromEnv(true)
-	assert.NoError(
-		err,
-		"should not produce any error from testarango constructor",
-	)
-	gta = ta
-	dbh, err := ta.DB(ta.Database)
-	assert.NoError(err, "should not produce any database error")
-	cstr := testarango.RandomString(20, 30)
-	_, err = dbh.CreateCollection(cstr, &driver.CreateCollectionOptions{})
-	if err != nil {
-		e := dbh.Drop()
-		assert.NoError(e, "should not produce any error from database removal")
-	}
-	defer func() {
-		e := dbh.Drop()
-		if e != nil {
-			log.Fatalf("could not remove database %s", e)
-		}
-	}()
+	dbh, cstr := setupTestArango(assert)
+	defer cleanupAfterEach(assert, dbh)
 	fstr, err := ParseFilterString(
 		"summary===bhokchoi;ontology===dicty_strain_property;tag===general strain,tag===REMI-seq",
 	)
@@ -388,8 +365,11 @@ func TestAQLArrayFilter(t *testing.T) {
 	assert.NoError(err, "should not have any invalid AQL query")
 }
 
-func testDateFilter(assert *require.Assertions, dbh *arangomanager.Database) {
-	cstr := testarango.RandomString(minLen, maxLen)
+func TestAQLDateFilter(t *testing.T) {
+	t.Parallel()
+	assert := require.New(t)
+	dbh, cstr := setupTestArango(assert)
+	defer cleanupAfterEach(assert, dbh)
 	ds, err := ParseFilterString("created_at$==2019,created_at$>2018")
 	assert.NoError(err, "should not have any error from parsing string")
 	dfl, err := GenAQLFilterStatement(
@@ -443,23 +423,23 @@ func testDateFilter(assert *require.Assertions, dbh *arangomanager.Database) {
 	assert.NoError(err, "should not have any invalid AQL query")
 }
 
-func testSubstringFilter(
-	assert *require.Assertions,
-	dbh *arangomanager.Database,
-) {
-	cstr := testarango.RandomString(minLen, maxLen)
+func TestAQLSubstringFilter(t *testing.T) {
+	t.Parallel()
+	assert := require.New(t)
+	dbh, cstr := setupTestArango(assert)
+	defer cleanupAfterEach(assert, dbh)
 	qf, err := ParseFilterString("label=~GWDI")
 	assert.NoError(err, "should not return any parsing error")
-	qs, err := GenAQLFilterStatement(
+	qsa, err := GenAQLFilterStatement(
 		&StatementParameters{Fmap: fmap, Filters: qf, Doc: "doc"},
 	)
 	assert.NoError(
 		err,
 		"should not return any error when generating AQL filter statement",
 	)
-	assert.Contains(qs, "FILTER", "should contain FILTER term")
-	assert.Contains(qs, "doc.label =~ 'GWDI'", "should contain GWDI substring")
-	err = dbh.ValidateQ(genFullStmt(qs, cstr))
+	assert.Contains(qsa, "FILTER", "should contain FILTER term")
+	assert.Contains(qsa, "doc.label =~ 'GWDI'", "should contain GWDI substring")
+	err = dbh.ValidateQ(genFullStmt(qsa, cstr))
 	assert.NoError(err, "should not have any invalid AQL query")
 	// substring match with AND logic
 	qf2, err := ParseFilterString("label=~GWDI;email===brady@gmail.com")
@@ -482,10 +462,12 @@ func testSubstringFilter(
 	assert.NoError(err, "should not have any invalid AQL query")
 }
 
-func testOperatorFilter(
-	assert *require.Assertions,
-	dbh *arangomanager.Database,
-) {
+func TestAQLOperatorFilter(t *testing.T) {
+	t.Parallel()
+	assert := require.New(t)
+	dbh, cstr := setupTestArango(assert)
+	defer cleanupAfterEach(assert, dbh)
+
 	s2, err := ParseFilterString(
 		"email===mahomes@gmail.com;email===brees@gmail.com",
 	)
@@ -510,12 +492,16 @@ func testOperatorFilter(
 	)
 	assert.Contains(na2, "AND", "should contain AND term")
 	err = dbh.ValidateQ(
-		genFullStmt(na2, testarango.RandomString(minLen, maxLen)),
+		genFullStmt(na2, cstr),
 	)
 	assert.NoError(err, "should not have any invalid AQL query")
 }
 
-func testEqualFilter(assert *require.Assertions, dbh *arangomanager.Database) {
+func TestAQLEqualFilter(t *testing.T) {
+	t.Parallel()
+	assert := require.New(t)
+	dbh, cstr := setupTestArango(assert)
+	defer cleanupAfterEach(assert, dbh)
 	s, err := ParseFilterString(
 		"email===mahomes@gmail.com,email===brees@gmail.com",
 	)
@@ -539,9 +525,7 @@ func testEqualFilter(assert *require.Assertions, dbh *arangomanager.Database) {
 		"should contain proper == statement",
 	)
 	assert.Contains(naf, "OR", "should contain OR term")
-	err = dbh.ValidateQ(
-		genFullStmt(naf, testarango.RandomString(minLen, maxLen)),
-	)
+	err = dbh.ValidateQ(genFullStmt(naf, cstr))
 	assert.NoError(err, "should not have any invalid AQL query")
 }
 
