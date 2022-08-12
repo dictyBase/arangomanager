@@ -40,6 +40,8 @@ const (
 )
 
 var seedRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
+var startPrefixRegxp = regexp.MustCompile(`\(`)
+var endPrefixRegxp = regexp.MustCompile(`\)`)
 
 // Filter is a container for filter parameters.
 type Filter struct {
@@ -135,13 +137,18 @@ func ParseFilterString(fstr string) ([]*Filter, error) {
 // GenQualifiedAQLFilterStatement generates an AQL(arangodb query language)
 // compatible filter query statement where the fields map is expected to
 // contain namespaced(fully qualified like
+//
 //		{
 //			tag: "doc.label",
 //			name: "doc.level.identifier"
 //		}
 //	)
+//
 // mapping to database fields.
-func GenQualifiedAQLFilterStatement(fmap map[string]string, filters []*Filter) (string, error) {
+func GenQualifiedAQLFilterStatement(
+	fmap map[string]string,
+	filters []*Filter,
+) (string, error) {
 	lmap := map[string]string{",": "OR", ";": "AND"}
 	omap := getOperatorMap()
 	dmap := getDateOperatorMap()
@@ -181,7 +188,10 @@ func GenQualifiedAQLFilterStatement(fmap map[string]string, filters []*Filter) (
 					),
 				)
 			}
-			stmts["nonlet"] = append(stmts["nonlet"], fmt.Sprintf("LENGTH(%s) > 0", str))
+			stmts["nonlet"] = append(
+				stmts["nonlet"],
+				fmt.Sprintf("LENGTH(%s) > 0", str),
+			)
 		} else if _, ok := dmap[flt.Operator]; ok {
 			// validate date format
 			if err := dateValidator(flt.Value); err != nil {
@@ -207,7 +217,10 @@ func GenQualifiedAQLFilterStatement(fmap map[string]string, filters []*Filter) (
 		}
 		// if there's logic, write that too
 		if len(flt.Logic) != 0 {
-			stmts["nonlet"] = append(stmts["nonlet"], fmt.Sprintf("\n %s ", lmap[flt.Logic]))
+			stmts["nonlet"] = append(
+				stmts["nonlet"],
+				fmt.Sprintf("\n %s ", lmap[flt.Logic]),
+			)
 		}
 	}
 
@@ -230,17 +243,35 @@ func GenAQLFilterStatement(prms *StatementParameters) (string, error) {
 			case "=~":
 				stmts.Insert(
 					0,
-					fmt.Sprintf(arrMatchTmpl, randStr, inner, prms.Fmap[flt.Field], flt.Value),
+					fmt.Sprintf(
+						arrMatchTmpl,
+						randStr,
+						inner,
+						prms.Fmap[flt.Field],
+						flt.Value,
+					),
 				)
 			case "==":
 				stmts.Insert(
 					0,
-					fmt.Sprintf(arrEqualTmpl, randStr, flt.Value, inner, prms.Fmap[flt.Field]),
+					fmt.Sprintf(
+						arrEqualTmpl,
+						randStr,
+						flt.Value,
+						inner,
+						prms.Fmap[flt.Field],
+					),
 				)
 			case "!=":
 				stmts.Insert(
 					0,
-					fmt.Sprintf(arrNotEqualTmpl, randStr, flt.Value, inner, prms.Fmap[flt.Field]),
+					fmt.Sprintf(
+						arrNotEqualTmpl,
+						randStr,
+						flt.Value,
+						inner,
+						prms.Fmap[flt.Field],
+					),
 				)
 			}
 			stmts.Add(fmt.Sprintf("LENGTH(%s) > 0", randStr))
@@ -258,11 +289,19 @@ func GenAQLFilterStatement(prms *StatementParameters) (string, error) {
 		case hasOperator(flt.Operator):
 			// write the rest of AQL statement based on regular string data
 			stmts.Add(fmt.Sprintf(
-				"%s.%s %s %s", inner, prms.Fmap[flt.Field],
-				getOperator(flt.Operator), addQuoteToStrings(flt.Operator, flt.Value),
+				"%s.%s %s %s",
+				inner,
+				prms.Fmap[flt.Field],
+				getOperator(
+					flt.Operator,
+				),
+				addQuoteToStrings(flt.Operator, flt.Value),
 			))
 		default:
-			return "", fmt.Errorf("unknown opertaor for parsing %s", flt.Operator)
+			return "", fmt.Errorf(
+				"unknown opertaor for parsing %s",
+				flt.Operator,
+			)
 		}
 		addLogic(stmts, flt)
 	}
@@ -288,21 +327,30 @@ func addLogic(stmts *arraylist.List, flt *Filter) {
 }
 
 func addStartingParen(stmts *arraylist.List, currSize int) {
-	elem, _ := stmts.Get(currSize - logicIdx)
-	if val, ok := elem.(string); ok {
-		if strings.TrimSpace(val) == "AND" {
-			stmts.Insert(currSize-1, " ( ")
-		}
+	if !isBalancedParens(stmts) {
+		return
 	}
+	stmts.Insert(currSize-1, " ( ")
 }
 
 func addClosingParen(stmts *arraylist.List, currSize int) {
+	if isBalancedParens(stmts) {
+		return
+	}
 	elem, _ := stmts.Get(currSize - logicIdx)
 	if val, ok := elem.(string); ok {
 		if strings.TrimSpace(val) == "OR" {
 			stmts.Add(" ) ")
 		}
 	}
+}
+
+func isBalancedParens(stmts *arraylist.List) bool {
+	strStmt := stmts.String()
+	startLen := len(startPrefixRegxp.FindAllString(strStmt, -1))
+	endLen := len(endPrefixRegxp.FindAllString(strStmt, -1))
+
+	return startLen == endLen
 }
 
 func toFullStatement(mst map[string][]string) string {
