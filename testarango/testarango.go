@@ -19,9 +19,10 @@ const (
 
 // CheckArangoEnv checks for the presence of the following
 // environment variables
-//   ARANGO_HOST
-//   ARANGO_USER
-//   ARANGO_PASS
+//
+//	ARANGO_HOST
+//	ARANGO_USER
+//	ARANGO_PASS
 func CheckArangoEnv() error {
 	envs := []string{
 		"ARANGO_USER",
@@ -61,10 +62,12 @@ type TestArango struct {
 
 // NewTestArangoFromEnv is a constructor for TestArango instance.
 // It expects the following environmental variables to be set.
-//   ARANGO_HOST
-//   ARANGO_USER
-//   ARANGO_PASS
-//   ARANGO_PORT is optional, by default it uses 8529
+//
+//	ARANGO_HOST
+//	ARANGO_USER
+//	ARANGO_PASS
+//	ARANGO_PORT is optional, by default it uses 8529
+//
 // isCreate toggles whether a random disposable test database
 // will be created during instantiation. It is false by default.
 func NewTestArangoFromEnv(isCreate bool) (*TestArango, error) {
@@ -106,7 +109,11 @@ func NewTestArangoFromEnv(isCreate bool) (*TestArango, error) {
 // database credentials.
 // isCreate toggles whether a random disposable test
 // database will be created during instantiation. It is false by default.
-func NewTestArango(user, pass, host string, port int, isCreate bool) (*TestArango, error) {
+func NewTestArango(
+	user, pass, host string,
+	port int,
+	isCreate bool,
+) (*TestArango, error) {
 	tra := new(TestArango)
 	tra.ConnectParams = &arangomanager.ConnectParams{
 		User: user,
@@ -135,7 +142,10 @@ func NewTestArango(user, pass, host string, port int, isCreate bool) (*TestArang
 }
 
 // CreateTestDb creates a test database of given name.
-func (ta *TestArango) CreateTestDb(name string, opt *driver.CreateDatabaseOptions) error {
+func (ta *TestArango) CreateTestDb(
+	name string,
+	opt *driver.CreateDatabaseOptions,
+) error {
 	if err := ta.CreateDB(name, opt); err != nil {
 		return err
 	}

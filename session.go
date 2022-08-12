@@ -16,15 +16,20 @@ type Session struct {
 }
 
 // NewSessionFromClient creates a new Session from an existing client
-//   You could also do this
-//      &Session{client}
-//  Funny isn't it
+//
+//	 You could also do this
+//	    &Session{client}
+//	Funny isn't it
 func NewSessionFromClient(client driver.Client) *Session {
 	return &Session{client}
 }
 
 // Connect is a constructor for new client.
-func Connect(host, user, password string, port int, istls bool) (*Session, error) {
+func Connect(
+	host, user, password string,
+	port int,
+	istls bool,
+) (*Session, error) {
 	connConf := http.ConnectionConfig{
 		Endpoints: []string{
 			fmt.Sprintf("http://%s:%d", host, port),
@@ -88,12 +93,19 @@ func (s *Session) CurrentDB() (*Database, error) {
 }
 
 // CreateDB creates database.
-func (s *Session) CreateDB(name string, opt *driver.CreateDatabaseOptions) error {
-	ok, err := s.client.DatabaseExists(context.Background(), name)
+func (s *Session) CreateDB(
+	name string,
+	opt *driver.CreateDatabaseOptions,
+) error {
+	isOk, err := s.client.DatabaseExists(context.Background(), name)
 	if err != nil {
-		return fmt.Errorf("error in checking existence of database %s %s", name, err)
+		return fmt.Errorf(
+			"error in checking existence of database %s %s",
+			name,
+			err,
+		)
 	}
-	if !ok {
+	if !isOk {
 		_, err = s.client.CreateDatabase(context.Background(), name, opt)
 		if err != nil {
 			return fmt.Errorf("error in creating database %s %s", name, err)
@@ -116,7 +128,11 @@ func (s *Session) CreateUser(user, pass string) error {
 	}
 	if !ok {
 		isActive := true
-		_, err := s.client.CreateUser(context.Background(), user, &driver.UserOptions{Password: pass, Active: &isActive})
+		_, err := s.client.CreateUser(
+			context.Background(),
+			user,
+			&driver.UserOptions{Password: pass, Active: &isActive},
+		)
 		if err != nil {
 			return fmt.Errorf("error in creating user %s", err)
 		}
@@ -136,7 +152,11 @@ func (s *Session) GrantDB(database, user, grant string) error {
 	}
 	dbuser, err := s.client.User(context.Background(), user)
 	if err != nil {
-		return fmt.Errorf("error in getting user %s from database %s", user, err)
+		return fmt.Errorf(
+			"error in getting user %s from database %s",
+			user,
+			err,
+		)
 	}
 	dbh, err := s.client.Database(context.Background(), database)
 	if err != nil {
@@ -164,16 +184,26 @@ func getGrant(g string) driver.Grant {
 	return grnt
 }
 func (s *Session) getDatabase(name string) (*Database, error) {
-	ok, err := s.client.DatabaseExists(context.Background(), name)
+	isOk, err := s.client.DatabaseExists(context.Background(), name)
 	if err != nil {
-		return &Database{}, fmt.Errorf("error in checking existing of database %s", err)
+		return &Database{}, fmt.Errorf(
+			"error in checking existing of database %s",
+			err,
+		)
 	}
-	if !ok {
-		return &Database{}, fmt.Errorf("error in finding database named %s: %s", name, err)
+	if !isOk {
+		return &Database{}, fmt.Errorf(
+			"error in finding database named %s: %s",
+			name,
+			err,
+		)
 	}
 	dbh, err := s.client.Database(context.Background(), name)
 	if err != nil {
-		return &Database{}, fmt.Errorf("unable to get database instance %s", err)
+		return &Database{}, fmt.Errorf(
+			"unable to get database instance %s",
+			err,
+		)
 	}
 
 	return &Database{dbh}, nil

@@ -12,14 +12,36 @@ import (
 )
 
 const (
+	logicIdx     = 2
+	charSet      = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	filterStrLen = 5
 	strSeedLen   = 10
+	arrMatchTmpl = `
+	      LET %s = (
+	 		FOR x IN %s.%s[*]
+				FILTER CONTAINS(x, LOWER('%s')) 
+				LIMIT 1 
+				RETURN 1
+		)
+	`
+	arrEqualTmpl = `
+		LET %s = (
+				FILTER '%s' IN %s.%s[*] 
+				RETURN 1
+		)
+	`
+	arrNotEqualTmpl = `
+		LET %s = (
+				FILTER '%s' NOT IN %s.%s[*]
+				RETURN 1
+		)
+	`
+	dateTmpl = "%s.%s %s DATE_ISO8601('%s')"
 )
 
-var arrToAQL = map[string]string{
-	"==": "IN",
-	"!=": "NOT IN",
-}
+var seedRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
+var startPrefixRegxp = regexp.MustCompile(`\(`)
+var endPrefixRegxp = regexp.MustCompile(`\)`)
 
 // Filter is a container for filter parameters.
 type Filter struct {
@@ -79,50 +101,6 @@ func buildDate() (*regexp.Regexp, error) {
 	return rgxp, nil
 }
 
-func getOperatorMap() map[string]string {
-	return map[string]string{
-		"==":  "==",
-		"===": "==",
-		"!=":  "!=",
-		">":   ">",
-		"<":   "<",
-		">=":  ">=",
-		"<=":  "<=",
-		"=~":  "=~",
-		"!~":  "!~",
-		"$==": "==",
-		"$>":  ">",
-		"$<":  "<",
-		"$>=": ">=",
-		"$<=": "<=",
-		"@==": "==",
-		"@=~": "=~",
-		"@!~": "!~",
-		"@!=": "!=",
-	}
-}
-
-// map values that are predefined as dates.
-func getDateOperatorMap() map[string]string {
-	return map[string]string{
-		"$==": "==",
-		"$>":  ">",
-		"$<":  "<",
-		"$>=": ">=",
-		"$<=": "<=",
-	}
-}
-
-// map values that are predefined as array items.
-func getArrayOperatorMap() map[string]string {
-	return map[string]string{
-		"@==": "==",
-		"@=~": "=~",
-		"@!~": "!~",
-		"@!=": "!=",
-	}
-}
-
 // ParseFilterString parses a predefined filter string to Filter
 // structure. The filter string specification is defined in
 // corresponding protocol buffer definition.
@@ -159,13 +137,18 @@ func ParseFilterString(fstr string) ([]*Filter, error) {
 // GenQualifiedAQLFilterStatement generates an AQL(arangodb query language)
 // compatible filter query statement where the fields map is expected to
 // contain namespaced(fully qualified like
+//
 //		{
 //			tag: "doc.label",
 //			name: "doc.level.identifier"
 //		}
 //	)
+//
 // mapping to database fields.
-func GenQualifiedAQLFilterStatement(fmap map[string]string, filters []*Filter) (string, error) {
+func GenQualifiedAQLFilterStatement(
+	fmap map[string]string,
+	filters []*Filter,
+) (string, error) {
 	lmap := map[string]string{",": "OR", ";": "AND"}
 	omap := getOperatorMap()
 	dmap := getDateOperatorMap()
@@ -205,7 +188,10 @@ func GenQualifiedAQLFilterStatement(fmap map[string]string, filters []*Filter) (
 					),
 				)
 			}
-			stmts["nonlet"] = append(stmts["nonlet"], fmt.Sprintf("LENGTH(%s) > 0", str))
+			stmts["nonlet"] = append(
+				stmts["nonlet"],
+				fmt.Sprintf("LENGTH(%s) > 0", str),
+			)
 		} else if _, ok := dmap[flt.Operator]; ok {
 			// validate date format
 			if err := dateValidator(flt.Value); err != nil {
@@ -231,7 +217,10 @@ func GenQualifiedAQLFilterStatement(fmap map[string]string, filters []*Filter) (
 		}
 		// if there's logic, write that too
 		if len(flt.Logic) != 0 {
-			stmts["nonlet"] = append(stmts["nonlet"], fmt.Sprintf("\n %s ", lmap[flt.Logic]))
+			stmts["nonlet"] = append(
+				stmts["nonlet"],
+				fmt.Sprintf("\n %s ", lmap[flt.Logic]),
+			)
 		}
 	}
 
@@ -241,106 +230,127 @@ func GenQualifiedAQLFilterStatement(fmap map[string]string, filters []*Filter) (
 // GenAQLFilterStatement generates an AQL(arangodb query language) compatible
 // filter query statement.
 func GenAQLFilterStatement(prms *StatementParameters) (string, error) {
-	fmap := prms.Fmap
-	filters := prms.Filters
 	inner := prms.Doc
-	lmap := map[string]string{",": "OR", ";": "AND"}
-	omap := getOperatorMap()
-	dmap := getDateOperatorMap()
-	amap := getArrayOperatorMap()
 	stmts := arraylist.New()
 	if len(prms.Vert) > 0 {
 		inner = prms.Vert
 	}
-	for _, flt := range filters {
-		// check if operator is used for array item
-		if _, ok := amap[flt.Operator]; ok {
-			str := randString(strSeedLen)
-			if amap[flt.Operator] == "=~" {
-				stmts.Insert(0,
-					fmt.Sprintf(`
-							LET %s = (
-								FOR x IN %s.%s[*]
-									FILTER CONTAINS(x, LOWER('%s')) 
-									LIMIT 1 
-									RETURN 1
-							)
-						`,
-						str,
+	for _, flt := range prms.Filters {
+		switch {
+		case hasArrayOperator(flt.Operator):
+			randStr := randString(strSeedLen)
+			switch getArrayOpertaor(flt.Operator) {
+			case "=~":
+				stmts.Insert(
+					0,
+					fmt.Sprintf(
+						arrMatchTmpl,
+						randStr,
 						inner,
-						fmap[flt.Field],
+						prms.Fmap[flt.Field],
 						flt.Value,
 					),
 				)
-			}
-			if amap[flt.Operator] == "==" {
-				stmts.Insert(0,
-					fmt.Sprintf(`
-							LET %s = (
-								FILTER '%s' IN %s.%s[*] 
-								RETURN 1
-							)
-						`,
-						str,
+			case "==":
+				stmts.Insert(
+					0,
+					fmt.Sprintf(
+						arrEqualTmpl,
+						randStr,
 						flt.Value,
 						inner,
-						fmap[flt.Field],
+						prms.Fmap[flt.Field],
+					),
+				)
+			case "!=":
+				stmts.Insert(
+					0,
+					fmt.Sprintf(
+						arrNotEqualTmpl,
+						randStr,
+						flt.Value,
+						inner,
+						prms.Fmap[flt.Field],
 					),
 				)
 			}
-			if amap[flt.Operator] == "!=" {
-				stmts.Insert(0,
-					fmt.Sprintf(`
-							LET %s = (
-								FILTER '%s' NOT IN %s.%s[*]
-								RETURN 1
-							)
-						`,
-						str,
-						flt.Value,
-						inner,
-						fmap[flt.Field],
-					),
-				)
-			}
-			stmts.Add(fmt.Sprintf("LENGTH(%s) > 0", str))
-			// if there's logic, write that too
-			if len(flt.Logic) != 0 {
-				stmts.Add(fmt.Sprintf("\n %s ", lmap[flt.Logic]))
-			}
-		} else if _, ok := dmap[flt.Operator]; ok {
+			stmts.Add(fmt.Sprintf("LENGTH(%s) > 0", randStr))
+		case hasDateOperator(flt.Operator):
 			if err := dateValidator(flt.Value); err != nil {
 				return "", err
 			}
 			// write time conversion into AQL query
-			stmts.Add(fmt.Sprintf(
-				"%s.%s %s DATE_ISO8601('%s')",
-				inner,
-				fmap[flt.Field],
-				omap[flt.Operator],
-				flt.Value,
-			))
-			if len(flt.Logic) != 0 {
-				stmts.Add(fmt.Sprintf("\n %s ", lmap[flt.Logic]))
-			}
-		} else {
-			// write the rest of AQL statement based on regular string data
 			stmts.Add(
 				fmt.Sprintf(
-					"%s.%s %s %s",
-					inner,
-					fmap[flt.Field],
-					omap[flt.Operator],
-					addQuoteToStrings(flt.Operator, flt.Value),
+					dateTmpl, inner, prms.Fmap[flt.Field],
+					getOperator(flt.Operator), flt.Value,
 				),
 			)
-			if len(flt.Logic) != 0 {
-				stmts.Add(fmt.Sprintf("\n %s ", lmap[flt.Logic]))
-			}
+		case hasOperator(flt.Operator):
+			// write the rest of AQL statement based on regular string data
+			stmts.Add(fmt.Sprintf(
+				"%s.%s %s %s",
+				inner,
+				prms.Fmap[flt.Field],
+				getOperator(
+					flt.Operator,
+				),
+				addQuoteToStrings(flt.Operator, flt.Value),
+			))
+		default:
+			return "", fmt.Errorf(
+				"unknown opertaor for parsing %s",
+				flt.Operator,
+			)
 		}
+		addLogic(stmts, flt)
 	}
 
 	return toString(stmts), nil
+}
+
+func addLogic(stmts *arraylist.List, flt *Filter) {
+	currSize := stmts.Size()
+	if len(flt.Logic) == 0 {
+		addClosingParen(stmts, currSize)
+
+		return
+	}
+	logic := getLogic(flt.Logic)
+	switch logic {
+	case "OR":
+		addStartingParen(stmts, currSize)
+	case "AND":
+		addClosingParen(stmts, currSize)
+	}
+	stmts.Add(fmt.Sprintf("\n %s ", logic))
+}
+
+func addStartingParen(stmts *arraylist.List, currSize int) {
+	if !isBalancedParens(stmts) {
+		return
+	}
+	stmts.Insert(currSize-1, " ( ")
+}
+
+func addClosingParen(stmts *arraylist.List, currSize int) {
+	if isBalancedParens(stmts) {
+		return
+	}
+	elem, _ := stmts.Get(currSize - logicIdx)
+	if val, ok := elem.(string); ok {
+		if strings.TrimSpace(val) == "OR" {
+			stmts.Add(" ) ")
+		}
+	}
+}
+
+func isBalancedParens(stmts *arraylist.List) bool {
+	strStmt := stmts.String()
+	startLen := len(startPrefixRegxp.FindAllString(strStmt, -1))
+	endLen := len(endPrefixRegxp.FindAllString(strStmt, -1))
+
+	return startLen == endLen
 }
 
 func toFullStatement(mst map[string][]string) string {
@@ -400,31 +410,22 @@ func dateValidator(str string) error {
 	if err != nil {
 		return err
 	}
-	m := dre.FindString(str)
-	if len(m) == 0 {
+	mtch := dre.FindString(str)
+	if len(mtch) == 0 {
 		return fmt.Errorf("error in validating date %s", str)
 	}
 	// grab valid date and parse to time object
-	if _, err := now.Parse(m); err != nil {
+	if _, err := now.Parse(mtch); err != nil {
 		return fmt.Errorf("could not parse date %s %s", str, err)
 	}
 
 	return nil
 }
 
-const (
-	charSet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-)
-
-var seedRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
-
 func stringWithCharset(length int, charset string) string {
 	var byt []byte
 	for i := 0; i < length; i++ {
-		byt = append(
-			byt,
-			charset[seedRand.Intn(len(charset))],
-		)
+		byt = append(byt, charset[seedRand.Intn(len(charset))])
 	}
 
 	return string(byt)
