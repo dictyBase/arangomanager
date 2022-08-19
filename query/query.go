@@ -12,16 +12,30 @@ import (
 )
 
 const (
-	logicIdx     = 2
-	charSet      = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	filterStrLen = 5
-	strSeedLen   = 10
+	logicIdx         = 2
+	charSet          = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	filterStrLen     = 5
+	strSeedLen       = 10
+	arrQualMatchTmpl = `
+		LET %s = (
+			FOR x IN %s[*]
+				FILTER CONTAINS(x, LOWER('%s')) 
+				LIMIT 1 
+				RETURN 1
+		)
+	`
 	arrMatchTmpl = `
 	      LET %s = (
 	 		FOR x IN %s.%s[*]
 				FILTER CONTAINS(x, LOWER('%s')) 
 				LIMIT 1 
 				RETURN 1
+		)
+	`
+	arrQualEqualTmpl = `
+		LET %s = (
+			FILTER '%s' %s %s[*] 
+			RETURN 1
 		)
 	`
 	arrEqualTmpl = `
@@ -153,74 +167,55 @@ func GenQualifiedAQLFilterStatement(
 	omap := getOperatorMap()
 	dmap := getDateOperatorMap()
 	amap := getArrayOperatorMap()
-	stmts := make(map[string][]string)
+	stmts := make(map[string]*arraylist.List)
+	stmts["let"] = arraylist.New()
+	stmts["nonlet"] = arraylist.New()
 	for _, flt := range filters {
 		// check if operator is used for array item
 		if _, ok := amap[flt.Operator]; ok {
 			str := randString(strSeedLen)
 			if amap[flt.Operator] == "=~" {
-				stmts["let"] = append(stmts["let"],
-					fmt.Sprintf(`
-							LET %s = (
-								FOR x IN %s[*]
-									FILTER CONTAINS(x, LOWER('%s')) 
-									LIMIT 1 
-									RETURN 1
-							)
-						`,
+				stmts["let"].Insert(
+					0,
+					fmt.Sprintf(
+						arrQualMatchTmpl,
 						str,
 						fmap[flt.Field],
 						flt.Value,
 					),
 				)
 			} else {
-				stmts["let"] = append(stmts["let"],
-					fmt.Sprintf(`
-							LET %s = (
-								FILTER '%s' %s %s[*] 
-								RETURN 1
-							)
-						`,
-						str,
+				stmts["let"].Insert(
+					0,
+					fmt.Sprintf(
+						arrQualEqualTmpl, str,
 						flt.Value,
 						arrToAQL[amap[flt.Operator]],
 						fmap[flt.Field],
-					),
-				)
+					))
 			}
-			stmts["nonlet"] = append(
-				stmts["nonlet"],
-				fmt.Sprintf("LENGTH(%s) > 0", str),
-			)
+			stmts["nonlet"].Add(fmt.Sprintf("LENGTH(%s) > 0", str))
 		} else if _, ok := dmap[flt.Operator]; ok {
 			// validate date format
 			if err := dateValidator(flt.Value); err != nil {
 				return "", err
 			}
 			// write time conversion into AQL query
-			stmts["nonlet"] = append(stmts["nonlet"], fmt.Sprintf(
-				"%s %s DATE_ISO8601('%s')",
-				fmap[flt.Field],
-				omap[flt.Operator],
-				flt.Value,
+			stmts["nonlet"].Add(fmt.Sprintf("%s %s DATE_ISO8601('%s')",
+				fmap[flt.Field], omap[flt.Operator], flt.Value,
 			))
 		} else {
 			// write the rest of AQL statement based on regular string data
-			stmts["nonlet"] = append(stmts["nonlet"],
-				fmt.Sprintf(
-					"%s %s %s",
-					fmap[flt.Field],
-					omap[flt.Operator],
-					addQuoteToStrings(flt.Operator, flt.Value),
-				))
+			stmts["nonlet"].Add(fmt.Sprintf(
+				"%s %s %s",
+				fmap[flt.Field], omap[flt.Operator],
+				addQuoteToStrings(flt.Operator, flt.Value),
+			))
 			// if there's logic, write that too
 		}
 		// if there's logic, write that too
 		if len(flt.Logic) != 0 {
-			stmts["nonlet"] = append(
-				stmts["nonlet"],
-				fmt.Sprintf("\n %s ", lmap[flt.Logic]),
-			)
+			stmts["nonlet"].Add(fmt.Sprintf("\n %s ", lmap[flt.Logic]))
 		}
 	}
 
@@ -353,14 +348,14 @@ func isBalancedParens(stmts *arraylist.List) bool {
 	return startLen == endLen
 }
 
-func toFullStatement(mst map[string][]string) string {
+func toFullStatement(mst map[string]*arraylist.List) string {
 	var clause strings.Builder
 	if v, ok := mst["let"]; ok {
-		clause.WriteString(strings.Join(v, ""))
+		clause.WriteString(v.String())
 	}
 	clause.WriteString("FILTER ")
 	if v, ok := mst["nonlet"]; ok {
-		clause.WriteString(strings.Join(v, ""))
+		clause.WriteString(v.String())
 	}
 
 	return clause.String()
