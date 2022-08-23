@@ -124,7 +124,7 @@ func TestParseFilterString(t *testing.T) {
 	assert.Len(b, 0, "should have empty slice since regex doesn't match string")
 }
 
-func TestQualifiedAQLStatement(t *testing.T) {
+func TestQualifiedEqualFilter(t *testing.T) {
 	t.Parallel()
 	assert := require.New(t)
 	dbh, cstr := setupTestArango(assert)
@@ -146,6 +146,13 @@ func TestQualifiedAQLStatement(t *testing.T) {
 	)
 	err = dbh.ValidateQ(genFullQualifiedStmt(nqa, "fizz", cstr))
 	assert.NoError(err, "should not have any invalid AQL query")
+}
+
+func TestQualifiedSubstringFilter(t *testing.T) {
+	t.Parallel()
+	assert := require.New(t)
+	dbh, cstr := setupTestArango(assert)
+	defer cleanupAfterEach(assert, dbh)
 	// test item substring for quotes
 	qf, err := ParseFilterString("label=~GWDI")
 	assert.NoError(err, "should not return any parsing error")
@@ -161,6 +168,13 @@ func TestQualifiedAQLStatement(t *testing.T) {
 	)
 	err = dbh.ValidateQ(genFullQualifiedStmt(qsa, "v", cstr))
 	assert.NoError(err, "should not have any invalid AQL query")
+}
+
+func TestQualifiedDateFilter(t *testing.T) {
+	t.Parallel()
+	assert := require.New(t)
+	dbh, cstr := setupTestArango(assert)
+	defer cleanupAfterEach(assert, dbh)
 	// test date equals
 	df, err := ParseFilterString("created_at$==2019,created_at$==2018")
 	assert.NoError(err, "should not return any parsing error")
@@ -175,6 +189,13 @@ func TestQualifiedAQLStatement(t *testing.T) {
 	)
 	err = dbh.ValidateQ(genFullQualifiedStmt(dfl, "foo", cstr))
 	assert.NoError(err, "should not have any invalid AQL query")
+}
+
+func TestQualifiedArrayFilter(t *testing.T) {
+	t.Parallel()
+	assert := require.New(t)
+	dbh, cstr := setupTestArango(assert)
+	defer cleanupAfterEach(assert, dbh)
 	// test item in array equals
 	af, err := ParseFilterString("sport@==basketball")
 	assert.NoError(err, "should not return any parsing error")
