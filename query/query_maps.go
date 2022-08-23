@@ -1,10 +1,5 @@
 package query
 
-var arrToAQL = map[string]string{
-	"==": "IN",
-	"!=": "NOT IN",
-}
-
 func getLogic(input string) string {
 	lmap := map[string]string{",": "OR", ";": "AND"}
 
