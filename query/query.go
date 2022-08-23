@@ -34,7 +34,7 @@ const (
 	`
 	arrQualEqualTmpl = `
 		LET %s = (
-			FILTER '%s' %s %s[*] 
+			FILTER '%s' IN %s[*] 
 			RETURN 1
 		)
 	`
@@ -47,6 +47,12 @@ const (
 	arrNotEqualTmpl = `
 		LET %s = (
 				FILTER '%s' NOT IN %s.%s[*]
+				RETURN 1
+		)
+	`
+	arrQualNotEqualTmpl = `
+		LET %s = (
+				FILTER '%s' NOT IN %s[*]
 				RETURN 1
 		)
 	`
@@ -163,60 +169,69 @@ func GenQualifiedAQLFilterStatement(
 	fmap map[string]string,
 	filters []*Filter,
 ) (string, error) {
-	lmap := map[string]string{",": "OR", ";": "AND"}
-	omap := getOperatorMap()
-	dmap := getDateOperatorMap()
-	amap := getArrayOperatorMap()
-	stmts := make(map[string]*arraylist.List)
-	stmts["let"] = arraylist.New()
-	stmts["nonlet"] = arraylist.New()
+	stmts := map[string]*arraylist.List{
+		"let":    arraylist.New(),
+		"nonlet": arraylist.New(),
+	}
 	for _, flt := range filters {
-		// check if operator is used for array item
-		if _, ok := amap[flt.Operator]; ok {
-			str := randString(strSeedLen)
-			if amap[flt.Operator] == "=~" {
+		switch {
+		case hasArrayOperator(flt.Operator):
+			randStr := randString(strSeedLen)
+			switch getArrayOpertaor(flt.Operator) {
 				stmts["let"].Insert(
 					0,
 					fmt.Sprintf(
 						arrQualMatchTmpl,
-						str,
+						randStr,
 						fmap[flt.Field],
 						flt.Value,
 					),
 				)
-			} else {
+			case "==":
 				stmts["let"].Insert(
 					0,
 					fmt.Sprintf(
-						arrQualEqualTmpl, str,
+						arrQualEqualTmpl,
+						randStr,
 						flt.Value,
-						arrToAQL[amap[flt.Operator]],
+						fmap[flt.Field],
+					),
+				)
+			case "!=":
+				stmts["let"].Insert(
+					0,
+					fmt.Sprintf(
+						arrQualNotEqualTmpl,
+						randStr,
+						flt.Value,
 						fmap[flt.Field],
 					))
 			}
-			stmts["nonlet"].Add(fmt.Sprintf("LENGTH(%s) > 0", str))
-		} else if _, ok := dmap[flt.Operator]; ok {
-			// validate date format
+			stmts["nonlet"].Add(fmt.Sprintf("LENGTH(%s) > 0", randStr))
+		case hasDateOperator(flt.Operator):
 			if err := dateValidator(flt.Value); err != nil {
 				return "", err
 			}
 			// write time conversion into AQL query
 			stmts["nonlet"].Add(fmt.Sprintf("%s %s DATE_ISO8601('%s')",
-				fmap[flt.Field], omap[flt.Operator], flt.Value,
+				fmap[flt.Field], getOperator(flt.Operator), flt.Value,
 			))
-		} else {
+		case hasOperator(flt.Operator):
 			// write the rest of AQL statement based on regular string data
 			stmts["nonlet"].Add(fmt.Sprintf(
 				"%s %s %s",
-				fmap[flt.Field], omap[flt.Operator],
+				fmap[flt.Field], getOperator(flt.Operator),
 				addQuoteToStrings(flt.Operator, flt.Value),
 			))
 			// if there's logic, write that too
+		default:
+			return "", fmt.Errorf(
+				"unknown opertaor for parsing %s",
+				flt.Operator,
+			)
 		}
 		// if there's logic, write that too
-		if len(flt.Logic) != 0 {
-			stmts["nonlet"].Add(fmt.Sprintf("\n %s ", lmap[flt.Logic]))
-		}
+		addLogic(stmts["nonlet"], flt)
 	}
 
 	return toFullStatement(stmts), nil
