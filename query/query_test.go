@@ -141,7 +141,7 @@ func TestQualifiedEqualFilter(t *testing.T) {
 	)
 	assert.Equal(
 		nqa,
-		"FILTER fizz.identifier == 'mahomes@gmail.com'\n OR fizz.identifier == 'brees@gmail.com'",
+		"FILTER  ( fizz.identifier == 'mahomes@gmail.com'\n OR fizz.identifier == 'brees@gmail.com' ) ",
 		"should match filter statement",
 	)
 	err = dbh.ValidateQ(genFullQualifiedStmt(nqa, "fizz", cstr))
@@ -185,7 +185,7 @@ func TestQualifiedDateFilter(t *testing.T) {
 	)
 	assert.Equal(
 		dfl,
-		"FILTER foo.created_at == DATE_ISO8601('2019')\n OR foo.created_at == DATE_ISO8601('2018')",
+		"FILTER  ( foo.created_at == DATE_ISO8601('2019')\n OR foo.created_at == DATE_ISO8601('2018') ) ",
 	)
 	err = dbh.ValidateQ(genFullQualifiedStmt(dfl, "foo", cstr))
 	assert.NoError(err, "should not have any invalid AQL query")
