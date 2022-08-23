@@ -178,6 +178,7 @@ func GenQualifiedAQLFilterStatement(
 		case hasArrayOperator(flt.Operator):
 			randStr := randString(strSeedLen)
 			switch getArrayOpertaor(flt.Operator) {
+			case "=~":
 				stmts["let"].Insert(
 					0,
 					fmt.Sprintf(
@@ -223,7 +224,6 @@ func GenQualifiedAQLFilterStatement(
 				fmap[flt.Field], getOperator(flt.Operator),
 				addQuoteToStrings(flt.Operator, flt.Value),
 			))
-			// if there's logic, write that too
 		default:
 			return "", fmt.Errorf(
 				"unknown opertaor for parsing %s",
@@ -365,12 +365,19 @@ func isBalancedParens(stmts *arraylist.List) bool {
 
 func toFullStatement(mst map[string]*arraylist.List) string {
 	var clause strings.Builder
-	if v, ok := mst["let"]; ok {
-		clause.WriteString(v.String())
+	// print all LET statements first
+	if letList, ok := mst["let"]; ok {
+		itr := letList.Iterator()
+		for itr.Next() {
+			clause.WriteString(itr.Value().(string))
+		}
 	}
 	clause.WriteString("FILTER ")
-	if v, ok := mst["nonlet"]; ok {
-		clause.WriteString(v.String())
+	if nonletList, ok := mst["nonlet"]; ok {
+		itr := nonletList.Iterator()
+		for itr.Next() {
+			clause.WriteString(itr.Value().(string))
+		}
 	}
 
 	return clause.String()
