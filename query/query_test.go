@@ -31,6 +31,9 @@ var qmap = map[string]string{
 	"sport":      "bar.game",
 	"email":      "fizz.identifier",
 	"label":      "v.label",
+	"tag":        "s.tag",
+	"ontology":   "cvterm.ontology",
+	"summary":    "v.summary",
 }
 
 func setupTestArango(
@@ -122,6 +125,77 @@ func TestParseFilterString(t *testing.T) {
 	b, err := ParseFilterString("xyz")
 	assert.NoError(err, "should not return any parse error")
 	assert.Len(b, 0, "should have empty slice since regex doesn't match string")
+}
+
+func TestQualifiedMixedLogicStatement(t *testing.T) {
+	t.Parallel()
+	assert := require.New(t)
+	dbh, cstr := setupTestArango(assert)
+	defer cleanupAfterEach(assert, dbh)
+	fstr, err := ParseFilterString(
+		"summary===bhokchoi;ontology===dicty_strain_property;tag===general strain,tag===REMI-seq",
+	)
+	assert.NoError(err, "should not have any error from parsing string")
+	stmt, err := GenQualifiedAQLFilterStatement(qmap, fstr)
+	assert.NoError(
+		err,
+		"should not have any error from generating AQL filter statement",
+	)
+	assert.Contains(
+		stmt,
+		"( s.tag == 'general strain'\n OR s.tag == 'REMI-seq' )",
+		"should have the expected substring",
+	)
+	assert.Contains(
+		stmt,
+		"v.summary == 'bhokchoi'\n AND cvterm.ontology == 'dicty_strain_property'",
+		"should have the expected substring",
+	)
+	err = dbh.ValidateQ(genFullStmt(stmt, cstr))
+	assert.NoError(err, "should not have any invalid AQL query")
+
+	fstr2, err := ParseFilterString(
+		"ontology===dicty_strain_property;tag===general strain,tag===REMI-seq;summary===bhokchoi",
+	)
+	assert.NoError(err, "should not have any error from parsing string")
+	stmt2, err := GenQualifiedAQLFilterStatement(qmap, fstr2)
+	assert.NoError(
+		err,
+		"should not have any error from generating AQL filter statement",
+	)
+	assert.Contains(
+		stmt2,
+		"s.tag == 'REMI-seq' ) \n AND v.summary == 'bhokchoi'",
+		"should have the expected substring",
+	)
+	err = dbh.ValidateQ(genFullStmt(stmt2, cstr))
+	assert.NoError(err, "should not have any invalid AQL query")
+
+	fstr3, err := ParseFilterString(
+		"ontology===dicty_strain_property;tag===general strain,tag===REMI-seq,tag===bacterial strain;summary===bhokchoi",
+	)
+	assert.NoError(err, "should not have any error from parsing string")
+	stmt3, err := GenQualifiedAQLFilterStatement(qmap, fstr3)
+	assert.NoError(
+		err,
+		"should not have any error from generating AQL filter statement",
+	)
+	assert.Contains(
+		stmt3,
+		"( s.tag == 'general strain'\n OR s.tag == 'REMI-seq'\n OR s.tag == 'bacterial strain' )",
+		"should have the expected substring",
+	)
+	assert.Contains(
+		stmt3,
+		"cvterm.ontology == 'dicty_strain_property'\n AND  ( s.tag == 'general strain'",
+		"should have the expected substring",
+	)
+	err = dbh.ValidateQ(genFullStmt(stmt3, cstr))
+	assert.NoError(err, "should not have any invalid AQL query")
+	for _, stm := range []string{stmt, stmt2, stmt3} {
+		assert.Contains(stm, "(", "should have starting parenthesis")
+		assert.Contains(stm, ")", "should have ending parenthesis")
+	}
 }
 
 func TestQualifiedEqualFilter(t *testing.T) {
