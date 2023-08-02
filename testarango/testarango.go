@@ -1,9 +1,7 @@
 package testarango
 
 import (
-	"crypto/rand"
 	"fmt"
-	"math/big"
 	"os"
 	"strconv"
 
@@ -36,44 +34,6 @@ func CheckArangoEnv() error {
 	}
 
 	return nil
-}
-
-func randomIntInRange(min, max int) (int, error) {
-	if min >= max {
-		return 0, fmt.Errorf("Invalid range")
-	}
-	// Calculate the number of possible values within the range
-	possibleValues := big.NewInt(int64(max - min))
-	// Generate a random number using crypto/rand
-	randomValue, err := rand.Int(rand.Reader, possibleValues)
-	if err != nil {
-		return 0, err
-	}
-	// Add the minimum value to the random number
-	return min + int(randomValue.Int64()), nil
-}
-
-// Generate a random number using crypto/rand.
-func RandomInt(num int) (int, error) {
-	randomValue, err := rand.Int(rand.Reader, big.NewInt(int64(num)))
-	if err != nil {
-		return 0, err
-	}
-	return int(randomValue.Int64()), nil
-}
-
-// Generates a random string between a range(min and max) of length.
-func RandomString(min, max int) string {
-	alphanum := []byte("abcdefghijklmnopqrstuvwxyz")
-	size, _ := randomIntInRange(min, max)
-	byt := make([]byte, size)
-	alen := len(alphanum)
-	for i := 0; i < size; i++ {
-		pos, _ := RandomInt(alen)
-		byt[i] = alphanum[pos]
-	}
-
-	return string(byt)
 }
 
 // TestArango is a container for managing a disposable database
@@ -120,7 +80,7 @@ func NewTestArangoFromEnv(isCreate bool) (*TestArango, error) {
 	}
 	tra.Session = sess
 	if isCreate {
-		if err := tra.CreateTestDb(RandomString(minLen, maxLen), &driver.CreateDatabaseOptions{}); err != nil {
+		if err := tra.CreateTestDb(arangomanager.RandomString(minLen, maxLen), &driver.CreateDatabaseOptions{}); err != nil {
 			return tra, err
 		}
 	}
@@ -156,7 +116,11 @@ func NewTestArango(
 	}
 	tra.Session = sess
 	if isCreate {
-		if err := tra.CreateTestDb(RandomString(minLen, maxLen), &driver.CreateDatabaseOptions{}); err != nil {
+		err = tra.CreateTestDb(
+			arangomanager.RandomString(minLen, maxLen),
+			&driver.CreateDatabaseOptions{},
+		)
+		if err != nil {
 			return tra, err
 		}
 	}
