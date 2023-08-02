@@ -235,6 +235,42 @@ func GenQualifiedAQLFilterStatement(
 	return toFullStatement(stmts), nil
 }
 
+func handleArrayOpertaor(
+	prms *StatementParameters,
+	flt *Filter,
+	randStr string,
+) string {
+	inner := prms.Doc
+	var stmt string
+	switch getArrayOpertaor(flt.Operator) {
+	case "=~":
+		stmt = fmt.Sprintf(
+			arrMatchTmpl,
+			randStr,
+			inner,
+			prms.Fmap[flt.Field],
+			flt.Value,
+		)
+	case "==":
+		stmt = fmt.Sprintf(
+			arrEqualTmpl,
+			randStr,
+			flt.Value,
+			inner,
+			prms.Fmap[flt.Field],
+		)
+	case "!=":
+		stmt = fmt.Sprintf(
+			arrNotEqualTmpl,
+			randStr,
+			flt.Value,
+			inner,
+			prms.Fmap[flt.Field],
+		)
+	}
+	return stmt
+}
+
 // GenAQLFilterStatement generates an AQL(arangodb query language) compatible
 // filter query statement.
 func GenAQLFilterStatement(prms *StatementParameters) (string, error) {
@@ -247,41 +283,7 @@ func GenAQLFilterStatement(prms *StatementParameters) (string, error) {
 		switch {
 		case hasArrayOperator(flt.Operator):
 			randStr := arangomanager.FixedLenRandomString(strSeedLen)
-			switch getArrayOpertaor(flt.Operator) {
-			case "=~":
-				stmts.Insert(
-					0,
-					fmt.Sprintf(
-						arrMatchTmpl,
-						randStr,
-						inner,
-						prms.Fmap[flt.Field],
-						flt.Value,
-					),
-				)
-			case "==":
-				stmts.Insert(
-					0,
-					fmt.Sprintf(
-						arrEqualTmpl,
-						randStr,
-						flt.Value,
-						inner,
-						prms.Fmap[flt.Field],
-					),
-				)
-			case "!=":
-				stmts.Insert(
-					0,
-					fmt.Sprintf(
-						arrNotEqualTmpl,
-						randStr,
-						flt.Value,
-						inner,
-						prms.Fmap[flt.Field],
-					),
-				)
-			}
+			stmts.Insert(0, handleArrayOpertaor(prms, flt, randStr))
 			stmts.Add(fmt.Sprintf("LENGTH(%s) > 0", randStr))
 		case hasDateOperator(flt.Operator):
 			if err := dateValidator(flt.Value); err != nil {
