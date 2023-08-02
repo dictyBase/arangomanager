@@ -53,13 +53,12 @@ func randomIntInRange(min, max int) (int, error) {
 	return min + int(randomValue.Int64()), nil
 }
 
-func randomInt(num int) (int, error) {
-	// Generate a random number using crypto/rand
+// Generate a random number using crypto/rand.
+func RandomInt(num int) (int, error) {
 	randomValue, err := rand.Int(rand.Reader, big.NewInt(int64(num)))
 	if err != nil {
 		return 0, err
 	}
-	// Add the minimum value to the random number
 	return int(randomValue.Int64()), nil
 }
 
@@ -70,7 +69,7 @@ func RandomString(min, max int) string {
 	byt := make([]byte, size)
 	alen := len(alphanum)
 	for i := 0; i < size; i++ {
-		pos, _ := randomInt(alen)
+		pos, _ := RandomInt(alen)
 		byt[i] = alphanum[pos]
 	}
 
