@@ -444,17 +444,7 @@ func TestAQLArrayFilter(t *testing.T) {
 		err,
 		"should not have any error from generating AQL filter statement",
 	)
-	assert.Contains(
-		bfa,
-		"FILTER 'apple' IN doc.sports[*]",
-		"should contain IN statement",
-	)
-	assert.Contains(
-		bfa,
-		"FILTER 'banana' NOT IN doc.sports[*]",
-		"should contain NOT IN statement",
-	)
-	assert.Contains(bfa, "OR", "should contain OR term")
+	moreFilterTests2(bfa, assert)
 	err = dbh.ValidateQ(genFullStmt(bfa, cstr))
 	assert.NoError(err, "should not have any invalid AQL query")
 	// test item in array with AND logic
@@ -470,6 +460,20 @@ func TestAQLArrayFilter(t *testing.T) {
 	moreFilterTests(bf2, assert)
 	err = dbh.ValidateQ(genFullStmt(bfa, cstr))
 	assert.NoError(err, "should not have any invalid AQL query")
+}
+
+func moreFilterTests2(bfa string, assert *require.Assertions) {
+	assert.Contains(
+		bfa,
+		"FILTER 'apple' IN doc.sports[*]",
+		"should contain IN statement",
+	)
+	assert.Contains(
+		bfa,
+		"FILTER 'banana' NOT IN doc.sports[*]",
+		"should contain NOT IN statement",
+	)
+	assert.Contains(bfa, "OR", "should contain OR term")
 }
 
 func moreFilterTests(bf2 string, assert *require.Assertions) {
