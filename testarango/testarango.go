@@ -1,11 +1,11 @@
 package testarango
 
 import (
+	"crypto/rand"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"os"
 	"strconv"
-	"time"
 
 	driver "github.com/arangodb/go-driver"
 	"github.com/dictyBase/arangomanager"
@@ -38,15 +38,39 @@ func CheckArangoEnv() error {
 	return nil
 }
 
+func randomIntInRange(min, max int) (int, error) {
+	if min >= max {
+		return 0, fmt.Errorf("Invalid range")
+	}
+	// Calculate the number of possible values within the range
+	possibleValues := big.NewInt(int64(max - min))
+	// Generate a random number using crypto/rand
+	randomValue, err := rand.Int(rand.Reader, possibleValues)
+	if err != nil {
+		return 0, err
+	}
+	// Add the minimum value to the random number
+	return min + int(randomValue.Int64()), nil
+}
+
+func randomInt(num int) (int, error) {
+	// Generate a random number using crypto/rand
+	randomValue, err := rand.Int(rand.Reader, big.NewInt(int64(num)))
+	if err != nil {
+		return 0, err
+	}
+	// Add the minimum value to the random number
+	return int(randomValue.Int64()), nil
+}
+
 // Generates a random string between a range(min and max) of length.
 func RandomString(min, max int) string {
 	alphanum := []byte("abcdefghijklmnopqrstuvwxyz")
-	rand.Seed(time.Now().UTC().UnixNano())
-	size := min + rand.Intn(max-min)
+	size, _ := randomIntInRange(min, max)
 	byt := make([]byte, size)
 	alen := len(alphanum)
 	for i := 0; i < size; i++ {
-		pos := rand.Intn(alen)
+		pos, _ := randomInt(alen)
 		byt[i] = alphanum[pos]
 	}
 
@@ -93,7 +117,7 @@ func NewTestArangoFromEnv(isCreate bool) (*TestArango, error) {
 		false,
 	)
 	if err != nil {
-		return tra, err
+		return tra, fmt.Errorf("error in connecting %s", err)
 	}
 	tra.Session = sess
 	if isCreate {
@@ -129,7 +153,7 @@ func NewTestArango(
 		false,
 	)
 	if err != nil {
-		return tra, err
+		return tra, fmt.Errorf("error in connecting %s", err)
 	}
 	tra.Session = sess
 	if isCreate {
@@ -147,7 +171,7 @@ func (ta *TestArango) CreateTestDb(
 	opt *driver.CreateDatabaseOptions,
 ) error {
 	if err := ta.CreateDB(name, opt); err != nil {
-		return err
+		return fmt.Errorf("error in creating database %s", err)
 	}
 	ta.Database = name
 
