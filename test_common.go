@@ -81,6 +81,18 @@ func RandomInt(num int) (int, error) {
 	return int(randomValue.Int64()), nil
 }
 
+func FixedLenRandomString(length int) string {
+	alphanum := []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	byt := make([]byte, 0)
+	alen := len(alphanum)
+	for i := 0; i < length; i++ {
+		pos, _ := RandomInt(alen)
+		byt = append(byt, alphanum[pos])
+	}
+
+	return string(byt)
+}
+
 // Generates a random string between a range(min and max) of length.
 func RandomString(min, max int) string {
 	alphanum := []byte("abcdefghijklmnopqrstuvwxyz")
