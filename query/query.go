@@ -2,11 +2,10 @@ package query
 
 import (
 	"fmt"
-	"math/rand"
 	"regexp"
 	"strings"
-	"time"
 
+	"github.com/dictyBase/arangomanager"
 	"github.com/emirpasic/gods/lists/arraylist"
 	"github.com/jinzhu/now"
 )
@@ -59,7 +58,6 @@ const (
 	dateTmpl = "%s.%s %s DATE_ISO8601('%s')"
 )
 
-var seedRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
 var startPrefixRegxp = regexp.MustCompile(`\(`)
 var endPrefixRegxp = regexp.MustCompile(`\)`)
 
@@ -176,7 +174,7 @@ func GenQualifiedAQLFilterStatement(
 	for _, flt := range filters {
 		switch {
 		case hasArrayOperator(flt.Operator):
-			randStr := randString(strSeedLen)
+			randStr := arangomanager.FixedLenRandomString(strSeedLen)
 			switch getArrayOpertaor(flt.Operator) {
 			case "=~":
 				stmts["let"].Insert(
@@ -248,7 +246,7 @@ func GenAQLFilterStatement(prms *StatementParameters) (string, error) {
 	for _, flt := range prms.Filters {
 		switch {
 		case hasArrayOperator(flt.Operator):
-			randStr := randString(strSeedLen)
+			randStr := arangomanager.FixedLenRandomString(strSeedLen)
 			switch getArrayOpertaor(flt.Operator) {
 			case "=~":
 				stmts.Insert(
@@ -437,17 +435,4 @@ func dateValidator(str string) error {
 	}
 
 	return nil
-}
-
-func stringWithCharset(length int, charset string) string {
-	var byt []byte
-	for i := 0; i < length; i++ {
-		byt = append(byt, charset[seedRand.Intn(len(charset))])
-	}
-
-	return string(byt)
-}
-
-func randString(length int) string {
-	return stringWithCharset(length, charSet)
 }
