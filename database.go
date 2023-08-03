@@ -198,24 +198,6 @@ func (d *Database) FindOrCreateGraph(name string, defs []driver.EdgeDefinition) 
 	return grph, nil
 }
 
-// EnsureFullTextIndex finds or creates a full text index on a specified collection.
-func (d *Database) EnsureFullTextIndex(
-	coll string, fields []string,
-	opts *driver.EnsureFullTextIndexOptions,
-) (driver.Index, bool, error) {
-	var idx driver.Index
-	cobj, err := d.Collection(coll)
-	if err != nil {
-		return idx, false, fmt.Errorf("unable to check for collection %s", coll)
-	}
-	idx, isOk, err := cobj.EnsureFullTextIndex(context.Background(), fields, opts)
-	if err != nil {
-		return idx, isOk, fmt.Errorf("error in handling index %s", err)
-	}
-
-	return idx, isOk, nil
-}
-
 // EnsureGeoIndex finds or creates a geo index on a specified collection.
 func (d *Database) EnsureGeoIndex(
 	coll string, fields []string,
