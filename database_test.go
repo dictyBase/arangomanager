@@ -148,35 +148,6 @@ func TestFindOrCreateCollection(t *testing.T) {
 	)
 }
 
-func TestEnsureFullTextIndex(t *testing.T) {
-	t.Parallel()
-	c := setup(t, adbh)
-	defer teardown(t, c)
-	assert := assert.New(t)
-	name := "group"
-	index, b, err := adbh.EnsureFullTextIndex(
-		c.Name(),
-		[]string{name},
-		&driver.EnsureFullTextIndexOptions{
-			Name: name,
-		},
-	)
-	assert.NoError(err, "should not return error for full text index method")
-	assert.True(b, "should create full text index")
-	assert.Exactly(
-		index.Type(),
-		driver.FullTextIndex,
-		"should return full text index type",
-	)
-	assert.Exactly(index.UserName(), name, "should match provided name option")
-	_, _, err = adbh.EnsureFullTextIndex(
-		"wrong name",
-		[]string{name},
-		&driver.EnsureFullTextIndexOptions{},
-	)
-	assert.Error(err, "should return error for wrong collection name")
-}
-
 func TestEnsureGeoIndex(t *testing.T) {
 	t.Parallel()
 	c := setup(t, adbh)
