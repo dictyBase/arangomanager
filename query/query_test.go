@@ -46,7 +46,7 @@ func setupTestArango(
 	)
 	dbh, err := ta.DB(ta.Database)
 	assert.NoError(err, "should not produce any database error")
-	crnd := testarango.RandomString(minLen, maxLen)
+	crnd := arangomanager.RandomString(minLen, maxLen)
 	_, err = dbh.CreateCollection(crnd, &driver.CreateCollectionOptions{})
 	if err != nil {
 		errDbh := dbh.Drop()
@@ -444,17 +444,7 @@ func TestAQLArrayFilter(t *testing.T) {
 		err,
 		"should not have any error from generating AQL filter statement",
 	)
-	assert.Contains(
-		bfa,
-		"FILTER 'apple' IN doc.sports[*]",
-		"should contain IN statement",
-	)
-	assert.Contains(
-		bfa,
-		"FILTER 'banana' NOT IN doc.sports[*]",
-		"should contain NOT IN statement",
-	)
-	assert.Contains(bfa, "OR", "should contain OR term")
+	moreFilterTests2(bfa, assert)
 	err = dbh.ValidateQ(genFullStmt(bfa, cstr))
 	assert.NoError(err, "should not have any invalid AQL query")
 	// test item in array with AND logic
@@ -467,6 +457,26 @@ func TestAQLArrayFilter(t *testing.T) {
 		err,
 		"should not have any error from generating AQL filter statement",
 	)
+	moreFilterTests(bf2, assert)
+	err = dbh.ValidateQ(genFullStmt(bfa, cstr))
+	assert.NoError(err, "should not have any invalid AQL query")
+}
+
+func moreFilterTests2(bfa string, assert *require.Assertions) {
+	assert.Contains(
+		bfa,
+		"FILTER 'apple' IN doc.sports[*]",
+		"should contain IN statement",
+	)
+	assert.Contains(
+		bfa,
+		"FILTER 'banana' NOT IN doc.sports[*]",
+		"should contain NOT IN statement",
+	)
+	assert.Contains(bfa, "OR", "should contain OR term")
+}
+
+func moreFilterTests(bf2 string, assert *require.Assertions) {
 	assert.Contains(
 		bf2,
 		"FILTER 'apple' IN doc.sports[*]",
@@ -478,8 +488,6 @@ func TestAQLArrayFilter(t *testing.T) {
 		"should contain CONTAINS statement",
 	)
 	assert.Contains(bf2, "AND", "should contain AND logic")
-	err = dbh.ValidateQ(genFullStmt(bfa, cstr))
-	assert.NoError(err, "should not have any invalid AQL query")
 }
 
 func TestAQLDateFilter(t *testing.T) {

@@ -1,25 +1,17 @@
-linters-settings:
-   funlen:
-      lines: 112
-      statements: 110
-   lll:
-      line-length: 130
-   revive:
+run:
+  allow-parallel-runners: true
+linters-settings: 
+    gosec: 
+      excludes: 
+        - G402
+    staticcheck:
+      checks: ["all", "-SA5001"]
+    funlen:
+        lines: 80
+    revive:
       rules:
         - name: var-naming
           arguments: [["ID"]]
-   gosec:
-      excludes:
-        - G404
-        - G402
-   wrapcheck:
-      ignorePackageGlobs:
-        - github.com/arangodb/*
-        - github.com/dictyBase/aphgrpc
-        - github.com/dictyBase/arangomanager
-      ignoreInterfaceRegexps:
-        - ^Database*
-
 linters:
   # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
   disable-all: true
@@ -27,66 +19,36 @@ linters:
     - asciicheck
     - bodyclose
     - bidichk
-    # - cyclop 
-    - deadcode
-    - decorder
+    - cyclop 
     - depguard
+    - decorder
     - dogsled
-    - dupl
+    # - dupl
     - errcheck
-    - errname
     - funlen
-    - gci
-    - gochecknoinits
     - goconst
     - gocritic
     - gocyclo
-    - godot
     - gofmt
     - goimports
     - gosec
     - gosimple
     - govet
-    - gocognit
-    - gomnd 
-    - gomoddirectives
-    - gomodguard
-    - grouper
-    - ifshort
     - ineffassign
-    - importas
     - lll
-    - maintidx
     - misspell
     - nakedret
-    # - nestif
-    - nilerr
-    - nlreturn
-    - nolintlint
-    - prealloc
-    - paralleltest
-    - predeclared
     - revive
-    - rowserrcheck
     - staticcheck
-    - structcheck
     - typecheck
     - unconvert
-    - thelper
-    - tparallel
     - unparam
     - unused
-    - unconvert
-    - unparam
-    - varnamelen
-    - wastedassign
-    - varcheck
     - whitespace
-    - wrapcheck
 
   # don't enable:
   # - godox
   # - maligned,prealloc
   # - gochecknoglobals
   # - golint
-  #  - forcetypeassert
+  # - gochecknoinits

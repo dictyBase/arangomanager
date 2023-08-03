@@ -2,11 +2,10 @@ package query
 
 import (
 	"fmt"
-	"math/rand"
 	"regexp"
 	"strings"
-	"time"
 
+	"github.com/dictyBase/arangomanager"
 	"github.com/emirpasic/gods/lists/arraylist"
 	"github.com/jinzhu/now"
 )
@@ -59,7 +58,6 @@ const (
 	dateTmpl = "%s.%s %s DATE_ISO8601('%s')"
 )
 
-var seedRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
 var startPrefixRegxp = regexp.MustCompile(`\(`)
 var endPrefixRegxp = regexp.MustCompile(`\)`)
 
@@ -176,7 +174,7 @@ func GenQualifiedAQLFilterStatement(
 	for _, flt := range filters {
 		switch {
 		case hasArrayOperator(flt.Operator):
-			randStr := randString(strSeedLen)
+			randStr := arangomanager.FixedLenRandomString(strSeedLen)
 			switch getArrayOpertaor(flt.Operator) {
 			case "=~":
 				stmts["let"].Insert(
@@ -237,6 +235,42 @@ func GenQualifiedAQLFilterStatement(
 	return toFullStatement(stmts), nil
 }
 
+func handleArrayOpertaor(
+	prms *StatementParameters,
+	flt *Filter,
+	randStr string,
+) string {
+	inner := prms.Doc
+	var stmt string
+	switch getArrayOpertaor(flt.Operator) {
+	case "=~":
+		stmt = fmt.Sprintf(
+			arrMatchTmpl,
+			randStr,
+			inner,
+			prms.Fmap[flt.Field],
+			flt.Value,
+		)
+	case "==":
+		stmt = fmt.Sprintf(
+			arrEqualTmpl,
+			randStr,
+			flt.Value,
+			inner,
+			prms.Fmap[flt.Field],
+		)
+	case "!=":
+		stmt = fmt.Sprintf(
+			arrNotEqualTmpl,
+			randStr,
+			flt.Value,
+			inner,
+			prms.Fmap[flt.Field],
+		)
+	}
+	return stmt
+}
+
 // GenAQLFilterStatement generates an AQL(arangodb query language) compatible
 // filter query statement.
 func GenAQLFilterStatement(prms *StatementParameters) (string, error) {
@@ -248,42 +282,8 @@ func GenAQLFilterStatement(prms *StatementParameters) (string, error) {
 	for _, flt := range prms.Filters {
 		switch {
 		case hasArrayOperator(flt.Operator):
-			randStr := randString(strSeedLen)
-			switch getArrayOpertaor(flt.Operator) {
-			case "=~":
-				stmts.Insert(
-					0,
-					fmt.Sprintf(
-						arrMatchTmpl,
-						randStr,
-						inner,
-						prms.Fmap[flt.Field],
-						flt.Value,
-					),
-				)
-			case "==":
-				stmts.Insert(
-					0,
-					fmt.Sprintf(
-						arrEqualTmpl,
-						randStr,
-						flt.Value,
-						inner,
-						prms.Fmap[flt.Field],
-					),
-				)
-			case "!=":
-				stmts.Insert(
-					0,
-					fmt.Sprintf(
-						arrNotEqualTmpl,
-						randStr,
-						flt.Value,
-						inner,
-						prms.Fmap[flt.Field],
-					),
-				)
-			}
+			randStr := arangomanager.FixedLenRandomString(strSeedLen)
+			stmts.Insert(0, handleArrayOpertaor(prms, flt, randStr))
 			stmts.Add(fmt.Sprintf("LENGTH(%s) > 0", randStr))
 		case hasDateOperator(flt.Operator):
 			if err := dateValidator(flt.Value); err != nil {
@@ -437,17 +437,4 @@ func dateValidator(str string) error {
 	}
 
 	return nil
-}
-
-func stringWithCharset(length int, charset string) string {
-	var byt []byte
-	for i := 0; i < length; i++ {
-		byt = append(byt, charset[seedRand.Intn(len(charset))])
-	}
-
-	return string(byt)
-}
-
-func randString(length int) string {
-	return stringWithCharset(length, charSet)
 }

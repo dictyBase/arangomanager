@@ -2,10 +2,8 @@ package testarango
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
 	"strconv"
-	"time"
 
 	driver "github.com/arangodb/go-driver"
 	"github.com/dictyBase/arangomanager"
@@ -36,21 +34,6 @@ func CheckArangoEnv() error {
 	}
 
 	return nil
-}
-
-// Generates a random string between a range(min and max) of length.
-func RandomString(min, max int) string {
-	alphanum := []byte("abcdefghijklmnopqrstuvwxyz")
-	rand.Seed(time.Now().UTC().UnixNano())
-	size := min + rand.Intn(max-min)
-	byt := make([]byte, size)
-	alen := len(alphanum)
-	for i := 0; i < size; i++ {
-		pos := rand.Intn(alen)
-		byt[i] = alphanum[pos]
-	}
-
-	return string(byt)
 }
 
 // TestArango is a container for managing a disposable database
@@ -93,11 +76,11 @@ func NewTestArangoFromEnv(isCreate bool) (*TestArango, error) {
 		false,
 	)
 	if err != nil {
-		return tra, err
+		return tra, fmt.Errorf("error in connecting %s", err)
 	}
 	tra.Session = sess
 	if isCreate {
-		if err := tra.CreateTestDb(RandomString(minLen, maxLen), &driver.CreateDatabaseOptions{}); err != nil {
+		if err := tra.CreateTestDb(arangomanager.RandomString(minLen, maxLen), &driver.CreateDatabaseOptions{}); err != nil {
 			return tra, err
 		}
 	}
@@ -129,11 +112,15 @@ func NewTestArango(
 		false,
 	)
 	if err != nil {
-		return tra, err
+		return tra, fmt.Errorf("error in connecting %s", err)
 	}
 	tra.Session = sess
 	if isCreate {
-		if err := tra.CreateTestDb(RandomString(minLen, maxLen), &driver.CreateDatabaseOptions{}); err != nil {
+		err = tra.CreateTestDb(
+			arangomanager.RandomString(minLen, maxLen),
+			&driver.CreateDatabaseOptions{},
+		)
+		if err != nil {
 			return tra, err
 		}
 	}
@@ -147,7 +134,7 @@ func (ta *TestArango) CreateTestDb(
 	opt *driver.CreateDatabaseOptions,
 ) error {
 	if err := ta.CreateDB(name, opt); err != nil {
-		return err
+		return fmt.Errorf("error in creating database %s", err)
 	}
 	ta.Database = name
 

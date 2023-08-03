@@ -3,10 +3,11 @@ package arangomanager
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io"
-	"math/rand"
+	"math/big"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -55,6 +56,56 @@ const (
 	minLen = 10
 	maxLen = 15
 )
+
+func randomIntInRange(min, max int) (int, error) {
+	if min >= max {
+		return 0, fmt.Errorf("Invalid range")
+	}
+	// Calculate the number of possible values within the range
+	possibleValues := big.NewInt(int64(max - min))
+	// Generate a random number using crypto/rand
+	randomValue, err := rand.Int(rand.Reader, possibleValues)
+	if err != nil {
+		return 0, err
+	}
+	// Add the minimum value to the random number
+	return min + int(randomValue.Int64()), nil
+}
+
+// Generate a random number using crypto/rand.
+func RandomInt(num int) (int, error) {
+	randomValue, err := rand.Int(rand.Reader, big.NewInt(int64(num)))
+	if err != nil {
+		return 0, err
+	}
+	return int(randomValue.Int64()), nil
+}
+
+func FixedLenRandomString(length int) string {
+	alphanum := []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	byt := make([]byte, 0)
+	alen := len(alphanum)
+	for i := 0; i < length; i++ {
+		pos, _ := RandomInt(alen)
+		byt = append(byt, alphanum[pos])
+	}
+
+	return string(byt)
+}
+
+// Generates a random string between a range(min and max) of length.
+func RandomString(min, max int) string {
+	alphanum := []byte("abcdefghijklmnopqrstuvwxyz")
+	size, _ := randomIntInRange(min, max)
+	byt := make([]byte, size)
+	alen := len(alphanum)
+	for i := 0; i < size; i++ {
+		pos, _ := RandomInt(alen)
+		byt[i] = alphanum[pos]
+	}
+
+	return string(byt)
+}
 
 type testArango struct {
 	*ConnectParams
@@ -136,21 +187,6 @@ func checkArangoEnv() error {
 	return nil
 }
 
-// Generates a random string between a range(min and max) of length.
-func randomString(min, max int) string {
-	alphanum := []byte("abcdefghijklmnopqrstuvwxyz")
-	rand.Seed(time.Now().UTC().UnixNano())
-	size := min + rand.Intn(max-min)
-	byt := make([]byte, size)
-	alen := len(alphanum)
-	for i := 0; i < size; i++ {
-		pos := rand.Intn(alen)
-		byt[i] = alphanum[pos]
-	}
-
-	return string(byt)
-}
-
 func teardown(t *testing.T, c driver.Collection) {
 	t.Helper()
 	if err := c.Remove(context.Background()); err != nil {
@@ -160,7 +196,10 @@ func teardown(t *testing.T, c driver.Collection) {
 
 func setup(t *testing.T, db *Database) driver.Collection {
 	t.Helper()
-	coll, err := db.FindOrCreateCollection(randomString(minLen, maxLen), &driver.CreateCollectionOptions{})
+	coll, err := db.FindOrCreateCollection(
+		RandomString(minLen, maxLen),
+		&driver.CreateCollectionOptions{},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -197,7 +236,7 @@ func newTestArangoFromEnv(isCreate bool) (*testArango, error) {
 		return tra, err
 	}
 	tra.Session = sess
-	tra.Database = randomString(minLen, maxLen)
+	tra.Database = RandomString(minLen, maxLen)
 	if isCreate {
 		if err := sess.CreateDB(tra.Database, &driver.CreateDatabaseOptions{}); err != nil {
 			return tra, err
@@ -243,7 +282,11 @@ func loadTestData(coll driver.Collection) error {
 		}
 		ausr = append(ausr, usr)
 	}
-	_, err = coll.ImportDocuments(context.Background(), ausr, &driver.ImportDocumentOptions{Complete: true})
+	_, err = coll.ImportDocuments(
+		context.Background(),
+		ausr,
+		&driver.ImportDocumentOptions{Complete: true},
+	)
 	if err != nil {
 		return fmt.Errorf("error in importing document %s", err)
 	}

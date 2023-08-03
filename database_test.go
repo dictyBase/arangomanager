@@ -49,10 +49,18 @@ func TestCount(t *testing.T) {
 	defer teardown(t, conn)
 	fc, err := adbh.Count(fmt.Sprintf(genderQNoParam, conn.Name(), "female"))
 	assert := assert.New(t)
-	assert.NoErrorf(err, "expect no error from counting query, received error %s", err)
+	assert.NoErrorf(
+		err,
+		"expect no error from counting query, received error %s",
+		err,
+	)
 	assert.Equalf(fc, int64(15), "expect %d received %d", 15, fc)
 	mc, err := adbh.Count(fmt.Sprintf(genderQNoParam, conn.Name(), "male"))
-	assert.NoErrorf(err, "expect no error from counting query, received error %s", err)
+	assert.NoErrorf(
+		err,
+		"expect no error from counting query, received error %s",
+		err,
+	)
 	assert.Equalf(mc, int64(15), "expect %d received %d", 15, mc)
 }
 
@@ -75,12 +83,21 @@ func TestCollection(t *testing.T) {
 	t.Parallel()
 	conn := setup(t, adbh)
 	defer teardown(t, conn)
-	_, err := adbh.Collection(randomString(6, 8))
+	_, err := adbh.Collection(RandomString(6, 8))
 	assert := assert.New(t)
-	assert.Error(err, "expect to return an error for an non-existent collection")
+	assert.Error(
+		err,
+		"expect to return an error for an non-existent collection",
+	)
 	nc, err := adbh.Collection(conn.Name())
 	assert.NoError(err, "not expect to return an error for existent collection")
-	assert.Equalf(conn.Name(), nc.Name(), "expect %s, received %s", conn.Name(), nc.Name())
+	assert.Equalf(
+		conn.Name(),
+		nc.Name(),
+		"expect %s, received %s",
+		conn.Name(),
+		nc.Name(),
+	)
 }
 
 func TestCreateCollection(t *testing.T) {
@@ -90,10 +107,19 @@ func TestCreateCollection(t *testing.T) {
 	_, err := adbh.CreateCollection(conn.Name(), nil)
 	assert := assert.New(t)
 	assert.Error(err, "expect to return existing collection error")
-	ncoll := randomString(9, 11)
+	ncoll := RandomString(9, 11)
 	nc, err := adbh.CreateCollection(ncoll, nil)
-	assert.NoError(err, "not expect to return an error for non-existent collection")
-	assert.Equalf(ncoll, nc.Name(), "expect %s, received %s", "bogus", nc.Name())
+	assert.NoError(
+		err,
+		"not expect to return an error for non-existent collection",
+	)
+	assert.Equalf(
+		ncoll,
+		nc.Name(),
+		"expect %s, received %s",
+		"bogus",
+		nc.Name(),
+	)
 }
 
 func TestFindOrCreateCollection(t *testing.T) {
@@ -103,11 +129,23 @@ func TestFindOrCreateCollection(t *testing.T) {
 	ec, err := adbh.FindOrCreateCollection(c.Name(), nil)
 	assert := assert.New(t)
 	assert.NoError(err, "not expect to return an error for existent collection")
-	assert.Equalf(c.Name(), ec.Name(), "expect %s, received %s", c.Name(), ec.Name())
-	ncoll := randomString(12, 15)
+	assert.Equalf(
+		c.Name(),
+		ec.Name(),
+		"expect %s, received %s",
+		c.Name(),
+		ec.Name(),
+	)
+	ncoll := RandomString(12, 15)
 	nc, err := adbh.FindOrCreateCollection(ncoll, nil)
 	assert.NoError(err, "not expect to return an error for existent collection")
-	assert.Equalf(ncoll, nc.Name(), "expect %s, received %s", "bogus", nc.Name())
+	assert.Equalf(
+		ncoll,
+		nc.Name(),
+		"expect %s, received %s",
+		"bogus",
+		nc.Name(),
+	)
 }
 
 func TestEnsureFullTextIndex(t *testing.T) {
@@ -116,14 +154,26 @@ func TestEnsureFullTextIndex(t *testing.T) {
 	defer teardown(t, c)
 	assert := assert.New(t)
 	name := "group"
-	index, b, err := adbh.EnsureFullTextIndex(c.Name(), []string{name}, &driver.EnsureFullTextIndexOptions{
-		Name: name,
-	})
+	index, b, err := adbh.EnsureFullTextIndex(
+		c.Name(),
+		[]string{name},
+		&driver.EnsureFullTextIndexOptions{
+			Name: name,
+		},
+	)
 	assert.NoError(err, "should not return error for full text index method")
 	assert.True(b, "should create full text index")
-	assert.Exactly(index.Type(), driver.FullTextIndex, "should return full text index type")
+	assert.Exactly(
+		index.Type(),
+		driver.FullTextIndex,
+		"should return full text index type",
+	)
 	assert.Exactly(index.UserName(), name, "should match provided name option")
-	_, _, err = adbh.EnsureFullTextIndex("wrong name", []string{name}, &driver.EnsureFullTextIndexOptions{})
+	_, _, err = adbh.EnsureFullTextIndex(
+		"wrong name",
+		[]string{name},
+		&driver.EnsureFullTextIndexOptions{},
+	)
 	assert.Error(err, "should return error for wrong collection name")
 }
 
@@ -133,14 +183,26 @@ func TestEnsureGeoIndex(t *testing.T) {
 	defer teardown(t, c)
 	assert := assert.New(t)
 	name := "value"
-	index, b, err := adbh.EnsureGeoIndex(c.Name(), []string{name}, &driver.EnsureGeoIndexOptions{
-		Name: name,
-	})
+	index, b, err := adbh.EnsureGeoIndex(
+		c.Name(),
+		[]string{name},
+		&driver.EnsureGeoIndexOptions{
+			Name: name,
+		},
+	)
 	assert.NoError(err, "should not return error for geo index method")
 	assert.True(b, "should create geo index")
-	assert.Exactly(index.Type(), driver.GeoIndex, "should return geo index type")
+	assert.Exactly(
+		index.Type(),
+		driver.GeoIndex,
+		"should return geo index type",
+	)
 	assert.Exactly(index.UserName(), name, "should match provided name option")
-	_, _, err = adbh.EnsureGeoIndex("wrong name", []string{name}, &driver.EnsureGeoIndexOptions{})
+	_, _, err = adbh.EnsureGeoIndex(
+		"wrong name",
+		[]string{name},
+		&driver.EnsureGeoIndexOptions{},
+	)
 	assert.Error(err, "should return error for wrong collection name")
 }
 
@@ -150,14 +212,26 @@ func TestEnsureHashIndex(t *testing.T) {
 	defer teardown(t, c)
 	assert := assert.New(t)
 	name := "entry_id"
-	index, b, err := adbh.EnsureHashIndex(c.Name(), []string{name}, &driver.EnsureHashIndexOptions{
-		Name: name,
-	})
+	index, b, err := adbh.EnsureHashIndex(
+		c.Name(),
+		[]string{name},
+		&driver.EnsureHashIndexOptions{
+			Name: name,
+		},
+	)
 	assert.NoError(err, "should not return error for hash index method")
 	assert.True(b, "should create hash index")
-	assert.Exactly(index.Type(), driver.HashIndex, "should return hash index type")
+	assert.Exactly(
+		index.Type(),
+		driver.HashIndex,
+		"should return hash index type",
+	)
 	assert.Exactly(index.UserName(), name, "should match provided name option")
-	_, _, err = adbh.EnsureHashIndex("wrong name", []string{name}, &driver.EnsureHashIndexOptions{})
+	_, _, err = adbh.EnsureHashIndex(
+		"wrong name",
+		[]string{name},
+		&driver.EnsureHashIndexOptions{},
+	)
 	assert.Error(err, "should return error for wrong collection name")
 }
 
@@ -167,14 +241,26 @@ func TestEnsurePersistentIndex(t *testing.T) {
 	defer teardown(t, c)
 	assert := assert.New(t)
 	name := "entry_id"
-	index, b, err := adbh.EnsurePersistentIndex(c.Name(), []string{name}, &driver.EnsurePersistentIndexOptions{
-		Name: name,
-	})
+	index, b, err := adbh.EnsurePersistentIndex(
+		c.Name(),
+		[]string{name},
+		&driver.EnsurePersistentIndexOptions{
+			Name: name,
+		},
+	)
 	assert.NoError(err, "should not return error for index method")
 	assert.True(b, "should create index")
-	assert.Exactly(index.Type(), driver.PersistentIndex, "should return persistent index type")
+	assert.Exactly(
+		index.Type(),
+		driver.PersistentIndex,
+		"should return persistent index type",
+	)
 	assert.Exactly(index.UserName(), name, "should match provided name option")
-	_, _, err = adbh.EnsurePersistentIndex("wrong name", []string{name}, &driver.EnsurePersistentIndexOptions{})
+	_, _, err = adbh.EnsurePersistentIndex(
+		"wrong name",
+		[]string{name},
+		&driver.EnsurePersistentIndexOptions{},
+	)
 	assert.Error(err, "should return error for wrong collection name")
 }
 
@@ -184,14 +270,26 @@ func TestEnsureSkipListIndex(t *testing.T) {
 	defer teardown(t, c)
 	assert := assert.New(t)
 	name := "created_at"
-	index, b, err := adbh.EnsureSkipListIndex(c.Name(), []string{name}, &driver.EnsureSkipListIndexOptions{
-		Name: name,
-	})
+	index, b, err := adbh.EnsureSkipListIndex(
+		c.Name(),
+		[]string{name},
+		&driver.EnsureSkipListIndexOptions{
+			Name: name,
+		},
+	)
 	assert.NoError(err, "should not return error for skip list index method")
 	assert.True(b, "should create skip list index")
-	assert.Exactly(index.Type(), driver.SkipListIndex, "should return skip list index type")
+	assert.Exactly(
+		index.Type(),
+		driver.SkipListIndex,
+		"should return skip list index type",
+	)
 	assert.Exactly(index.UserName(), name, "should match provided name option")
-	_, _, err = adbh.EnsureSkipListIndex("wrong name", []string{name}, &driver.EnsureSkipListIndexOptions{})
+	_, _, err = adbh.EnsureSkipListIndex(
+		"wrong name",
+		[]string{name},
+		&driver.EnsureSkipListIndexOptions{},
+	)
 	assert.Error(err, "should return error for wrong collection name")
 }
 
@@ -244,7 +342,11 @@ func TestDo(t *testing.T) {
 		},
 	)
 	assert := assert.New(t)
-	assert.NoErrorf(err, "expect no error from insert query, received error %s", err)
+	assert.NoErrorf(
+		err,
+		"expect no error from insert query, received error %s",
+		err,
+	)
 }
 
 func TestGetRow(t *testing.T) {
@@ -260,13 +362,21 @@ func TestGetRow(t *testing.T) {
 		},
 	)
 	assert := assert.New(t)
-	assert.NoErrorf(err, "expect no error from search query, received error %s", err)
+	assert.NoErrorf(
+		err,
+		"expect no error from search query, received error %s",
+		err,
+	)
 	assert.False(row.IsEmpty(), "expect result to be not empty")
 	var u testUserDb
 	err = row.Read(&u)
 	assert.NoError(err, "expect no error from reading the data")
 	assert.Equal(u.Gender, "female", "expect gender to be female")
-	assert.Equal(u.Contact.Address.City, "Beachwood", "should match city Beachwood")
+	assert.Equal(
+		u.Contact.Address.City,
+		"Beachwood",
+		"should match city Beachwood",
+	)
 	assert.Equal(u.Contact.Region, "732", "should match region 732")
 	erow, err := adbh.GetRow(
 		userQ,
@@ -276,7 +386,11 @@ func TestGetRow(t *testing.T) {
 			"last":        "Boka",
 		},
 	)
-	assert.NoErrorf(err, "expect no error from row query, received error %s", err)
+	assert.NoErrorf(
+		err,
+		"expect no error from row query, received error %s",
+		err,
+	)
 	assert.True(erow.IsEmpty(), "expect empty resultset")
 }
 
@@ -294,7 +408,11 @@ func TestTruncate(t *testing.T) {
 		})
 	}
 	err := adbh.Truncate(conn.Name())
-	assert.NoErrorf(err, "expect no error from truncation, received error %s", err)
+	assert.NoErrorf(
+		err,
+		"expect no error from truncation, received error %s",
+		err,
+	)
 	for _, g := range []string{"male", "female"} {
 		testGenderCount(&genderCountParams{
 			assert:     assert,
@@ -313,8 +431,18 @@ func testGenderCount(args *genderCountParams) {
 			"gender":      args.gender,
 		},
 	)
-	args.assert.NoErrorf(err, "expect no error from counting query, received error %s", err)
-	args.assert.Equalf(gcp, args.count, "expect %d received %d", args.count, gcp)
+	args.assert.NoErrorf(
+		err,
+		"expect no error from counting query, received error %s",
+		err,
+	)
+	args.assert.Equalf(
+		gcp,
+		args.count,
+		"expect %d received %d",
+		args.count,
+		gcp,
+	)
 }
 
 func testAllRows(rs *Resultset, assert *assert.Assertions, count int) {
@@ -330,7 +458,11 @@ func testAllRows(rs *Resultset, assert *assert.Assertions, count int) {
 func testSearchRs(t *testing.T, rs *Resultset, err error) {
 	t.Helper()
 	assert := assert.New(t)
-	assert.NoErrorf(err, "expect no error from search query, received error %s", err)
+	assert.NoErrorf(
+		err,
+		"expect no error from search query, received error %s",
+		err,
+	)
 	assert.False(rs.IsEmpty(), "expect resultset to be not empty")
 	testAllRows(rs, assert, 15)
 }
@@ -338,6 +470,10 @@ func testSearchRs(t *testing.T, rs *Resultset, err error) {
 func testSearchRsNoRow(t *testing.T, rs *Resultset, err error) {
 	t.Helper()
 	assert := assert.New(t)
-	assert.NoErrorf(err, "expect no error from search query, received error %s", err)
+	assert.NoErrorf(
+		err,
+		"expect no error from search query, received error %s",
+		err,
+	)
 	assert.True(rs.IsEmpty(), "expect empty resultset")
 }
