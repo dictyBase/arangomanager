@@ -1,7 +1,7 @@
 module github.com/dictyBase/arangomanager
 
 require (
-	github.com/arangodb/go-driver v1.6.4
+	github.com/arangodb/go-driver v1.6.5
 	github.com/emirpasic/gods v1.18.1
 	github.com/fatih/structs v1.1.0
 	github.com/go-playground/validator/v10 v10.22.1
