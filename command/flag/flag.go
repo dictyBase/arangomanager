@@ -70,8 +70,17 @@ func ArangoFlags() []cli.Flag {
 	}
 }
 
-// ArangodbFlags returns the cli based flag slice that includes
-// command line arguments for connecting to an arangodb instance.
+// ArangodbFlags returns a slice of cli.Flag for configuring an ArangoDB connection.
+// This version includes a database name flag (arangodb-database) in addition to
+// the basic connection flags provided by ArangoFlags().
+//
+// The returned flags include:
+//   - arangodb-pass: Password for ArangoDB (required, can be set via ARANGODB_PASS)
+//   - arangodb-database: Database name (required, can be set via ARANGODB_DATABASE)
+//   - arangodb-user: Username for ArangoDB (required, can be set via ARANGODB_USER)
+//   - arangodb-host: Host address (defaults to "arangodb", can be set via ARANGODB_SERVICE_HOST)
+//   - arangodb-port: Port number (defaults to "8529", can be set via ARANGODB_SERVICE_PORT)
+//   - is-secure: Flag for secured connection (defaults to true)
 func ArangodbFlags() []cli.Flag {
 	return []cli.Flag{
 		cli.StringFlag{

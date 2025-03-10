@@ -6,6 +6,9 @@ func getLogic(input string) string {
 	return lmap[input]
 }
 
+// getOperatorMap returns a mapping of filter operators to AQL operators.
+// It includes standard comparison operators, date operators (prefixed with $),
+// and array operators (prefixed with @).
 func getOperatorMap() map[string]string {
 	return map[string]string{
 		"==":  "==",
@@ -62,7 +65,9 @@ func hasArrayOperator(opt string) bool {
 	return isok
 }
 
-// map values that are predefined as dates.
+// getDateOperatorMap returns a mapping of date-specific operators used in filters to their
+// corresponding AQL operators. Date operators are prefixed with $ to distinguish them
+// from standard operators. When these operators are used, the value is treated as a date.
 func getDateOperatorMap() map[string]string {
 	return map[string]string{
 		"$==": "==",
@@ -73,7 +78,10 @@ func getDateOperatorMap() map[string]string {
 	}
 }
 
-// map values that are predefined as array items.
+// getArrayOperatorMap returns a mapping of array-specific operators used in filters to their
+// corresponding AQL operators. Array operators are prefixed with @ to distinguish them
+// from standard operators. When these operators are used, the value is treated as an element
+// to be searched for within an array.
 func getArrayOperatorMap() map[string]string {
 	return map[string]string{
 		"@==": "==",

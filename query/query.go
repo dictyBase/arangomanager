@@ -119,9 +119,15 @@ func buildDate() (*regexp.Regexp, error) {
 	return rgxp, nil
 }
 
-// ParseFilterString parses a predefined filter string to Filter
-// structure. The filter string specification is defined in
-// corresponding protocol buffer definition.
+// ParseFilterString parses a predefined filter string into a slice of Filter structures.
+// The filter string follows a specific format for field comparisons: field operator value[logic],
+// for example "name==john,age>20;email=~gmail" where ',' represents OR and ';' represents AND.
+// The filter string specification is defined in the corresponding protocol buffer definition.
+//
+// Operators supported include standard comparisons (==, !=, >, <, >=, <=, =~, !~),
+// date operators ($==, $>, $<, $>=, $<=), and array operators (@==, @=~, @!~, @!=).
+//
+// Returns an error if the filter string contains invalid operators.
 func ParseFilterString(fstr string) ([]*Filter, error) {
 	filters := make([]*Filter, 0)
 	qre, err := buildFilter()
@@ -152,17 +158,25 @@ func ParseFilterString(fstr string) ([]*Filter, error) {
 	return filters, nil
 }
 
-// GenQualifiedAQLFilterStatement generates an AQL(arangodb query language)
+// GenQualifiedAQLFilterStatement generates an AQL (ArangoDB Query Language)
 // compatible filter query statement where the fields map is expected to
-// contain namespaced(fully qualified like
+// contain namespaced (fully qualified) mapping to database fields, like:
 //
 //		{
-//			tag: "doc.label",
-//			name: "doc.level.identifier"
+//			"tag": "doc.label",
+//			"name": "doc.level.identifier"
 //		}
-//	)
 //
-// mapping to database fields.
+// This function handles standard operators, date comparisons, and array operations,
+// generating the appropriate LET statements and filter conditions in AQL syntax.
+// It also manages logical operators (AND/OR) between filter expressions and
+// ensures proper parenthetical grouping.
+//
+// Parameters:
+//   - fmap: A map of field names to their fully qualified database field paths
+//   - filters: A slice of Filter structures containing the filter criteria
+//
+// Returns the generated AQL filter statement as a string and any error encountered.
 func GenQualifiedAQLFilterStatement(
 	fmap map[string]string,
 	filters []*Filter,
@@ -271,8 +285,22 @@ func handleArrayOpertaor(
 	return stmt
 }
 
-// GenAQLFilterStatement generates an AQL(arangodb query language) compatible
-// filter query statement.
+// GenAQLFilterStatement generates an AQL (ArangoDB Query Language) compatible
+// filter query statement from the provided StatementParameters.
+//
+// Unlike GenQualifiedAQLFilterStatement, this function expects field names to be
+// mapped to non-qualified database field names and handles field access differently,
+// prefixing them with document/vertex variables (e.g., doc.field, vertex.field).
+//
+// This function handles standard operators, date comparisons, and array operations,
+// and supports both document-based queries and graph traversal queries through the
+// Document and Vertex parameters.
+//
+// Parameters:
+//   - prms: A StatementParameters struct containing the filter map, filters,
+//     document variable name, and optional vertex variable name
+//
+// Returns the generated AQL filter statement as a string and any error encountered.
 func GenAQLFilterStatement(prms *StatementParameters) (string, error) {
 	inner := prms.Doc
 	stmts := arraylist.New()
