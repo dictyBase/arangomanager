@@ -674,3 +674,57 @@ func genFullStmt(filter, coll string) string {
 		coll, filter,
 	)
 }
+
+func TestGenQualifiedAQLFilterStatementFieldValidation(t *testing.T) {
+	t.Parallel()
+	assert := require.New(t)
+	// Test case with missing field
+	invalidFilters := []*Filter{
+		{Field: "missing_field", Operator: "==", Value: "value"},
+	}
+	_, err := GenQualifiedAQLFilterStatement(qmap, invalidFilters)
+	assert.Error(err, "should return error for missing field")
+	assert.Contains(
+		err.Error(),
+		"missing field mappings in filter map",
+		"error should mention missing field mappings",
+	)
+	assert.Contains(
+		err.Error(),
+		"missing_field",
+		"error should contain the name of the missing field",
+	)
+
+	// Test case with multiple missing fields
+	multipleInvalidFilters := []*Filter{
+		{Field: "missing_field1", Operator: "==", Value: "value1"},
+		{Field: "sport", Operator: "==", Value: "valid_field"}, // This is valid
+		{Field: "missing_field2", Operator: "==", Value: "value2"},
+	}
+	_, err = GenQualifiedAQLFilterStatement(qmap, multipleInvalidFilters)
+	assert.Error(err, "should return error for missing fields")
+	assert.Contains(
+		err.Error(),
+		"missing field mappings in filter map",
+		"error should mention missing field mappings",
+	)
+	assert.Contains(
+		err.Error(),
+		"missing_field1",
+		"error should contain the first missing field",
+	)
+	assert.Contains(
+		err.Error(),
+		"missing_field2",
+		"error should contain the second missing field",
+	)
+
+	// Test case with all valid fields
+	validFilters := []*Filter{
+		{Field: "sport", Operator: "==", Value: "basketball"},
+		{Field: "email", Operator: "==", Value: "test@example.com"},
+	}
+	stmt, err := GenQualifiedAQLFilterStatement(qmap, validFilters)
+	assert.NoError(err, "should not return error when all fields are valid")
+	assert.NotEmpty(stmt, "should return a non-empty statement")
+}
