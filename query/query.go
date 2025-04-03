@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/dictyBase/arangomanager"
+	"github.com/dictyBase/arangomanager/collection"
 	"github.com/emirpasic/gods/lists/arraylist"
 	"github.com/jinzhu/now"
 )
@@ -58,8 +59,10 @@ const (
 	dateTmpl = "%s.%s %s DATE_ISO8601('%s')"
 )
 
-var startPrefixRegxp = regexp.MustCompile(`\(`)
-var endPrefixRegxp = regexp.MustCompile(`\)`)
+var (
+	startPrefixRegxp = regexp.MustCompile(`\(`)
+	endPrefixRegxp   = regexp.MustCompile(`\)`)
+)
 
 // Filter is a container for filter parameters.
 type Filter struct {
@@ -162,10 +165,10 @@ func ParseFilterString(fstr string) ([]*Filter, error) {
 // compatible filter query statement where the fields map is expected to
 // contain namespaced (fully qualified) mapping to database fields, like:
 //
-//		{
-//			"tag": "doc.label",
-//			"name": "doc.level.identifier"
-//		}
+//	{
+//		"tag": "doc.label",
+//		"name": "doc.level.identifier"
+//	}
 //
 // This function handles standard operators, date comparisons, and array operations,
 // generating the appropriate LET statements and filter conditions in AQL syntax.
@@ -176,51 +179,92 @@ func ParseFilterString(fstr string) ([]*Filter, error) {
 //   - fmap: A map of field names to their fully qualified database field paths
 //   - filters: A slice of Filter structures containing the filter criteria
 //
+// validateFilterFields checks if all filter fields are present in the field map.
+// Returns an error if any field is missing.
+func validateFilterFields(fmap map[string]string, filters []*Filter) error {
+	missingFields := collection.Filter(filters, func(f *Filter) bool {
+		_, exists := fmap[f.Field]
+		return !exists
+	})
+
+	if len(missingFields) > 0 {
+		missingFieldNames := collection.Map(
+			missingFields,
+			func(f *Filter) string {
+				return f.Field
+			},
+		)
+		return fmt.Errorf(
+			"missing field mappings in filter map: %v",
+			missingFieldNames,
+		)
+	}
+
+	return nil
+}
+
+// handleQualifiedArrayFilter adds array filter statements to the statements map.
+func handleQualifiedArrayFilter(
+	stmts map[string]*arraylist.List,
+	flt *Filter,
+	fmap map[string]string,
+) {
+	randStr := arangomanager.FixedLenRandomString(strSeedLen)
+	switch getArrayOpertaor(flt.Operator) {
+	case "=~":
+		stmts["let"].Insert(
+			0,
+			fmt.Sprintf(
+				arrQualMatchTmpl,
+				randStr,
+				fmap[flt.Field],
+				flt.Value,
+			),
+		)
+	case "==":
+		stmts["let"].Insert(
+			0,
+			fmt.Sprintf(
+				arrQualEqualTmpl,
+				randStr,
+				flt.Value,
+				fmap[flt.Field],
+			),
+		)
+	case "!=":
+		stmts["let"].Insert(
+			0,
+			fmt.Sprintf(
+				arrQualNotEqualTmpl,
+				randStr,
+				flt.Value,
+				fmap[flt.Field],
+			))
+	}
+	stmts["nonlet"].Add(fmt.Sprintf("LENGTH(%s) > 0", randStr))
+}
+
 // Returns the generated AQL filter statement as a string and any error encountered.
+// Returns an error if any Filter's Field is not present in the field map.
 func GenQualifiedAQLFilterStatement(
 	fmap map[string]string,
 	filters []*Filter,
 ) (string, error) {
+	// Validate field presence
+	if err := validateFilterFields(fmap, filters); err != nil {
+		return "", err
+	}
+
 	stmts := map[string]*arraylist.List{
 		"let":    arraylist.New(),
 		"nonlet": arraylist.New(),
 	}
+
+	// Process each filter
 	for _, flt := range filters {
 		switch {
 		case hasArrayOperator(flt.Operator):
-			randStr := arangomanager.FixedLenRandomString(strSeedLen)
-			switch getArrayOpertaor(flt.Operator) {
-			case "=~":
-				stmts["let"].Insert(
-					0,
-					fmt.Sprintf(
-						arrQualMatchTmpl,
-						randStr,
-						fmap[flt.Field],
-						flt.Value,
-					),
-				)
-			case "==":
-				stmts["let"].Insert(
-					0,
-					fmt.Sprintf(
-						arrQualEqualTmpl,
-						randStr,
-						flt.Value,
-						fmap[flt.Field],
-					),
-				)
-			case "!=":
-				stmts["let"].Insert(
-					0,
-					fmt.Sprintf(
-						arrQualNotEqualTmpl,
-						randStr,
-						flt.Value,
-						fmap[flt.Field],
-					))
-			}
-			stmts["nonlet"].Add(fmt.Sprintf("LENGTH(%s) > 0", randStr))
+			handleQualifiedArrayFilter(stmts, flt, fmap)
 		case hasDateOperator(flt.Operator):
 			if err := dateValidator(flt.Value); err != nil {
 				return "", err
@@ -435,7 +479,7 @@ func toString(l *arraylist.List) string {
 
 // check if operator is used for a string.
 func addQuoteToStrings(ops, value string) string {
-	var stringOperators = map[string]int{
+	stringOperators := map[string]int{
 		"==":  1,
 		"===": 1,
 		"!=":  1,
