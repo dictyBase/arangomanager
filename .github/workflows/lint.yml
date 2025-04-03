@@ -3,19 +3,10 @@ on:
   pull_request:
     branches-ignore:
       - master
+
 jobs:
-  lint:
-    runs-on: ubuntu-20.04
-    steps:
-      - name: check out code
-        uses: actions/checkout@v3
-      - name: set up golang
-        uses: actions/setup-go@v4
-        with:
-            go-version: 1.23
-            cache: false
-      - name: run linter
-        uses: golangci/golangci-lint-action@v3
-        with:
-          version: v1.52
-          skip-cache: true
+  call-lint:
+    uses: dictyBase/workflows/.github/workflows/golang-lint.yaml@develop
+    with:
+      repository: ${{ github.repository }}
+      ref: ${{ github.event.pull_request.head.sha }}
