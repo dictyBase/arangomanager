@@ -1,0 +1,49 @@
+{
+	"mcpServers": {
+		"playwright": {
+			"type": "stdio",
+			"command": "bunx",
+			"args": [
+				"@playwright/mcp@latest",
+				"--headless"
+			]
+		},
+		"repomix": {
+			"type": "stdio",
+			"command": "repomix",
+			"args": [
+				"--mcp"
+			]
+		},
+		"github": {
+			"type": "stdio",
+			"command": "mcp-server-github",
+			"args": []
+		},
+		"fetcher": {
+			"type": "stdio",
+			"command": "fetcher-mcp",
+			"args": []
+		},
+		"memory": {
+			"type": "stdio",
+			"command": "mcp-server-memory",
+			"args": []
+		},
+		"git": {
+			"type": "stdio",
+			"command": "python",
+			"args": [
+				"-m",
+				"mcp_server_git",
+				"--repository",
+				"/Users/sba964/Projects/devenv/golang/arangomanager"
+			]
+		},
+		"mermaid": {
+			"type": "stdio",
+			"command": "mcp-mermaid-validator",
+			"args": []
+		}
+	}
+}
