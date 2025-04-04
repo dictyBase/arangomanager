@@ -8,6 +8,7 @@ import (
 	"github.com/dictyBase/arangomanager"
 	"github.com/dictyBase/arangomanager/collection"
 	"github.com/emirpasic/gods/lists/arraylist"
+	"github.com/go-playground/validator/v10"
 	"github.com/jinzhu/now"
 )
 
@@ -62,28 +63,55 @@ const (
 var (
 	startPrefixRegxp = regexp.MustCompile(`\(`)
 	endPrefixRegxp   = regexp.MustCompile(`\)`)
+	validate         = validator.New()
 )
+
+func init() {
+	// Register custom validation for operators
+	_ = validate.RegisterValidation("operator_validation", validateOperator)
+}
+
+// validateOperator is a custom validator to check if the operator is valid
+func validateOperator(fl validator.FieldLevel) bool {
+	validOperators := map[string]bool{
+		"==": true, "!=": true, "===": true, "!==": true,
+		"=~": true, "!~": true, ">": true, "<": true,
+		">=": true, "<=": true, "$==": true, "$>": true,
+		"$>=": true, "$<": true, "$<=": true, "@==": true,
+		"@!=": true, "@!~": true, "@=~": true,
+	}
+
+	return validOperators[fl.Field().String()]
+}
+
+// AQLFilterParams defines validation for GenQualifiedAQLFilterStatement parameters
+type AQLFilterParams struct {
+	// Map of fields to database paths
+	Fmap map[string]string `validate:"required,min=1"`
+	// Slice of Filter structs
+	Filters []*Filter `validate:"required,min=1,dive"`
+}
 
 // Filter is a container for filter parameters.
 type Filter struct {
 	// Field of the object on which the filter will be applied
-	Field string
+	Field string `validate:"required"`
 	// Type of filter for matching or exclusion
-	Operator string
+	Operator string `validate:"required,operator_validation"`
 	// The value to match or exclude
-	Value string
-	// Logic for combining multiple filter expressions, usually "AND" or "OR"
-	Logic string
+	Value string `validate:"required"`
+	// Logic for combining multiple filter expressions, usually "AND" or "OR", "," (comma) for OR, ";" (semicolon) for AND
+	Logic string `validate:"omitempty"`
 }
 
 // StatementParameters is a container for elements needed in the AQL statement.
 type StatementParameters struct {
 	// Map of filters to database fields
-	Fmap map[string]string
+	Fmap map[string]string `validate:"required"`
 	// Slice of Filter structs, contains all necessary items for AQL statement
-	Filters []*Filter
+	Filters []*Filter `validate:"required,dive"`
 	// The variable used for looping inside a collection (i.e. the "s" in "FOR s IN stock")
-	Doc string
+	Doc string `validate:"required"`
 	// The variable used for looping inside a graph (i.e. the "v" in "FOR v IN 1..1 OUTBOUND s GRAPH 'xyz'")
 	Vert string
 }
@@ -161,27 +189,10 @@ func ParseFilterString(fstr string) ([]*Filter, error) {
 	return filters, nil
 }
 
-// GenQualifiedAQLFilterStatement generates an AQL (ArangoDB Query Language)
-// compatible filter query statement where the fields map is expected to
-// contain namespaced (fully qualified) mapping to database fields, like:
-//
-//	{
-//		"tag": "doc.label",
-//		"name": "doc.level.identifier"
-//	}
-//
-// This function handles standard operators, date comparisons, and array operations,
-// generating the appropriate LET statements and filter conditions in AQL syntax.
-// It also manages logical operators (AND/OR) between filter expressions and
-// ensures proper parenthetical grouping.
-//
-// Parameters:
-//   - fmap: A map of field names to their fully qualified database field paths
-//   - filters: A slice of Filter structures containing the filter criteria
-//
 // validateFilterFields checks if all filter fields are present in the field map.
 // Returns an error if any field is missing.
 func validateFilterFields(fmap map[string]string, filters []*Filter) error {
+	// Check that all fields exist in the field map
 	missingFields := collection.Filter(filters, func(f *Filter) bool {
 		_, exists := fmap[f.Field]
 		return !exists
@@ -244,13 +255,33 @@ func handleQualifiedArrayFilter(
 	stmts["nonlet"].Add(fmt.Sprintf("LENGTH(%s) > 0", randStr))
 }
 
-// Returns the generated AQL filter statement as a string and any error encountered.
-// Returns an error if any Filter's Field is not present in the field map.
+// GenQualifiedAQLFilterStatement generates an AQL (ArangoDB Query Language)
+// compatible filter query statement where the fields map is expected to
+// contain namespaced (fully qualified) mapping to database fields, like:
+//
+//	{
+//		"tag": "doc.label",
+//		"name": "doc.level.identifier"
+//	}
+//
+// This function handles standard operators, date comparisons, and array operations,
+// generating the appropriate LET statements and filter conditions in AQL syntax.
+// It also manages logical operators (AND/OR) between filter expressions and
+// ensures proper parenthetical grouping.
+// Parameters:
+//   - fmap: A map of field names to their fully qualified database field paths
+//   - filters: A slice of Filter structures containing the filter criteria
 func GenQualifiedAQLFilterStatement(
 	fmap map[string]string,
 	filters []*Filter,
 ) (string, error) {
-	// Validate field presence
+	if err := validate.Struct(&AQLFilterParams{
+		Fmap:    fmap,
+		Filters: filters,
+	}); err != nil {
+		return "", fmt.Errorf("invalid parameters: %w", err)
+	}
+	// Validate field presence for backward compatibility
 	if err := validateFilterFields(fmap, filters); err != nil {
 		return "", err
 	}
@@ -346,6 +377,13 @@ func handleArrayOpertaor(
 //
 // Returns the generated AQL filter statement as a string and any error encountered.
 func GenAQLFilterStatement(prms *StatementParameters) (string, error) {
+	if err := validate.Struct(prms); err != nil {
+		return "", fmt.Errorf(
+			"validation error in StatementParameters: %w",
+			err,
+		)
+	}
+
 	inner := prms.Doc
 	stmts := arraylist.New()
 	if len(prms.Vert) > 0 {
