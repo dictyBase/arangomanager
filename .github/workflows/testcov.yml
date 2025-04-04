@@ -5,7 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       arangodb:
-        image: arangodb:3.10.9
+        image: arangodb:3.11.6
         env:
           ARANGO_ROOT_PASSWORD: rootpass
         ports:
@@ -14,7 +14,7 @@ jobs:
       - name: set up golang
         uses: actions/setup-go@v5
         with:
-          go-version: '~1.23.0'
+          go-version: 1.23
       - run: go version
       - name: check out code
         uses: actions/checkout@v4
