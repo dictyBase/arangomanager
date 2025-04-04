@@ -46,7 +46,7 @@ linters:
     - whitespace
 
   # don't enable:
-  #  - depguard
+  # - depguard
   # - godox
   # - maligned,prealloc
   # - gochecknoglobals

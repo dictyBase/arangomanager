@@ -226,7 +226,7 @@ func (d *Database) FindOrCreateGraph(
 
 		return grph, nil
 	}
-	grph, err = d.dbh.CreateGraph(
+	grph, err = d.dbh.CreateGraphV2(
 		context.Background(),
 		name,
 		&driver.CreateGraphOptions{EdgeDefinitions: defs},
