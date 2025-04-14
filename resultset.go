@@ -31,7 +31,7 @@ func (r *Resultset) Scan() bool {
 	// At this point we know the cursor exists but has no more data
 	// Close the cursor and ignore any errors - they'll be caught in Close() if called
 	_ = r.cursor.Close()
-	
+
 	return false
 }
 
@@ -41,7 +41,7 @@ func (r *Resultset) Read(iface interface{}) error {
 	if r.empty {
 		return fmt.Errorf("cannot read from empty resultset")
 	}
-	
+
 	meta, err := r.cursor.ReadDocument(r.ctx, iface)
 	if err != nil {
 		return fmt.Errorf("error in reading document %s", err)
