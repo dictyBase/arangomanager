@@ -46,7 +46,10 @@ func (r *Resultset) Read(iface interface{}) error {
 	if f, ok := s.FieldOk("DocumentMeta"); ok {
 		if f.IsEmbedded() {
 			if err := f.Set(meta); err != nil {
-				return fmt.Errorf("error in assigning DocumentMeta to the structure %s", err)
+				return fmt.Errorf(
+					"error in assigning DocumentMeta to the structure %s",
+					err,
+				)
 			}
 		}
 	}
@@ -56,6 +59,9 @@ func (r *Resultset) Read(iface interface{}) error {
 
 // Close closed the resultset.
 func (r *Resultset) Close() error {
+	if r.empty {
+		return nil
+	}
 	if err := r.cursor.Close(); err != nil {
 		return fmt.Errorf("error in closing cursor %s", err)
 	}
