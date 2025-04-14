@@ -23,18 +23,25 @@ func (r *Resultset) IsEmpty() bool {
 // Scan advances resultset to the next row of data.
 func (r *Resultset) Scan() bool {
 	if r.empty {
-		return r.empty
+		return false
 	}
 	if r.cursor.HasMore() {
 		return true
 	}
-	r.cursor.Close()
-
+	// At this point we know the cursor exists but has no more data
+	// Close the cursor and ignore any errors - they'll be caught in Close() if called
+	_ = r.cursor.Close()
+	
 	return false
 }
 
-// Read read the row of data to interface i.
+// Read reads the row of data to interface i.
+// Returns an error if the resultset is empty.
 func (r *Resultset) Read(iface interface{}) error {
+	if r.empty {
+		return fmt.Errorf("cannot read from empty resultset")
+	}
+	
 	meta, err := r.cursor.ReadDocument(r.ctx, iface)
 	if err != nil {
 		return fmt.Errorf("error in reading document %s", err)
@@ -57,7 +64,9 @@ func (r *Resultset) Read(iface interface{}) error {
 	return nil
 }
 
-// Close closed the resultset.
+// Close closes the resultset and releases resources.
+// If the resultset is empty (r.empty is true), the cursor is nil
+// and no closing operation is needed.
 func (r *Resultset) Close() error {
 	if r.empty {
 		return nil
