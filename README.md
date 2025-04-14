@@ -169,10 +169,82 @@ if err := res.Read(&item); err != nil {
 }
 ```
 
-## Testing
+## Testing with TestArango
 
-For testing with ArangoDB, this library provides a `testarango` package to help
-set up temporary test databases.
+The `testarango` package provides utilities for writing tests against ArangoDB
+without affecting your production databases.
+
+### Features
+
+- Creates isolated, disposable test databases for your tests
+- Automatically cleans up after tests complete
+- Configurable via environment variables or direct parameter passing
+- Works with any running ArangoDB instance
+
+### Usage
+
+Set up the test environment in your `TestMain`:
+
+```go
+package mypackage
+
+import (
+    "log"
+    "os"
+    "testing"
+
+    "github.com/dictyBase/arangomanager/testarango"
+)
+
+var testArangoDB *testarango.TestArango
+
+func TestMain(m *testing.M) {
+    // Create a test database
+    ta, err := testarango.NewTestArangoFromEnv(true)
+    if err != nil {
+        log.Fatalf("failed to connect to test database: %s", err)
+    }
+    testArangoDB = ta
+    
+    // Run tests
+    code := m.Run()
+    
+    // Clean up the test database
+    db, err := ta.DB(ta.Database)
+    if err != nil {
+        log.Fatalf("error getting database: %s", err)
+    }
+    if err := db.Drop(); err != nil {
+        log.Fatalf("error dropping database: %s", err)
+    }
+    
+    os.Exit(code)
+}
+
+func TestSomething(t *testing.T) {
+    // Use the test database
+    session, db, err := arangomanager.NewSessionDb(&arangomanager.ConnectParams{
+        User:     testArangoDB.User,
+        Pass:     testArangoDB.Pass,
+        Host:     testArangoDB.Host,
+        Port:     testArangoDB.Port,
+        Database: testArangoDB.Database,
+    })
+    
+    // Run your tests with session and db
+    // ...
+}
+```
+
+### Requirements
+
+- A running ArangoDB instance
+- An existing user with administrative privileges (to create test databases)
+- Environment variables set:
+  - `ARANGO_HOST`: ArangoDB host
+  - `ARANGO_USER`: ArangoDB username
+  - `ARANGO_PASS`: ArangoDB password
+  - `ARANGO_PORT`: (Optional) ArangoDB port, defaults to 8529
 
 ## Advanced Usage
 
