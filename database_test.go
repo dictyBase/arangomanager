@@ -447,4 +447,8 @@ func testSearchRsNoRow(t *testing.T, rs *Resultset, err error) {
 		err,
 	)
 	assert.True(rs.IsEmpty(), "expect empty resultset")
+	
+	// Test for the fix: calling Scan() and Close() on empty resultsets shouldn't panic
+	assert.False(rs.Scan(), "scan on empty resultset should return false")
+	assert.NoError(rs.Close(), "close on empty resultset should not error")
 }
