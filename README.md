@@ -7,6 +7,24 @@
 
 A Go library providing utilities and abstractions for working with [ArangoDB](https://arangodb.com).
 
+## Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Main Components](#main-components)
+  - [Session](#session)
+  - [Database](#database)
+  - [ResultSet](#resultset)
+  - [Result](#result)
+- [Testing with TestArango](#testing-with-testarango)
+- [Query Package](#query-package)
+- [Collection Package](#collection-package)
+- [Command Line Integration](#command-line-integration)
+  - [Flag Package](#flag-package)
+- [Advanced Usage](#advanced-usage)
+- [License](#license)
+
 ## Features
 
 - Connection management and session handling
