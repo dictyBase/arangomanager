@@ -17,8 +17,8 @@
 		},
 		"github": {
 			"type": "stdio",
-			"command": "mcp-server-github",
-			"args": []
+			"command": "github-mcp-server",
+			"args": ["stdio"]
 		},
 		"fetcher": {
 			"type": "stdio",
