@@ -1,26 +1,183 @@
-# arangomanager
+# ArangoManager
+
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-blue.svg)](LICENSE)   
 ![Continuous integration](https://github.com/dictyBase/arangomanager/workflows/Continuous%20integration/badge.svg)
 [![GoDoc](https://pkg.go.dev/badge/github.com/dictyBase/arangomanager)](https://pkg.go.dev/github.com/dictyBase/arangomanager)
 [![codecov](https://codecov.io/gh/dictyBase/arangomanager/branch/develop/graph/badge.svg)](https://codecov.io/gh/dictyBase/arangomanager)
-[![Maintainability](https://api.codeclimate.com/v1/badges/63686238089c642c04f2/maintainability)](https://codeclimate.com/github/dictyBase/arangomanager/maintainability)   
-![Last commit](https://badgen.net/github/last-commit/dictyBase/arangomanager/develop)   
-[![Funding](https://badgen.net/badge/NIGMS/Rex%20L%20Chisholm,dictyBase,DCR/yellow?list=|)](https://reporter.nih.gov/project-details/10024726)
 
-Golang based various reusable utilities to work with [arangodb](https://arangodb.com).
+A Go library providing utilities and abstractions for working with [ArangoDB](https://arangodb.com).
 
-# Misc. badges
-![Issues](https://badgen.net/github/issues/dictyBase/arangomanager)
-![Open Issues](https://badgen.net/github/open-issues/dictyBase/arangomanager)
-![Closed Issues](https://badgen.net/github/closed-issues/dictyBase/arangomanager)   
-![Total PRS](https://badgen.net/github/prs/dictyBase/arangomanager)
-![Open PRS](https://badgen.net/github/open-prs/dictyBase/arangomanager)
-![Closed PRS](https://badgen.net/github/closed-prs/dictyBase/arangomanager)
-![Merged PRS](https://badgen.net/github/merged-prs/dictyBase/arangomanager)   
-![Commits](https://badgen.net/github/commits/dictyBase/arangomanager/develop)
-![Last commit](https://badgen.net/github/last-commit/dictyBase/arangomanager/develop)
-![Branches](https://badgen.net/github/branches/dictyBase/arangomanager)
-![Tags](https://badgen.net/github/tags/dictyBase/arangomanager)   
-![GitHub repo size](https://img.shields.io/github/repo-size/dictyBase/arangomanager?style=plastic)
-![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/dictyBase/arangomanager?style=plastic)
-[![Lines of Code](https://badgen.net/codeclimate/loc/dictyBase/arangomanager)](https://codeclimate.com/github/dictyBase/arangomanager/code)   
+## Features
+
+- Connection management and session handling
+- Database operations (create, find, drop)
+- Collection operations (create, find, truncate)
+- Query execution with support for parameters
+- Result set handling
+- Index management (geo, hash, persistent, skiplist)
+- Graph operations
+- User management with access control
+
+## Installation
+
+```bash
+go get github.com/dictyBase/arangomanager
+```
+
+## Quick Start
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+
+    "github.com/dictyBase/arangomanager"
+)
+
+func main() {
+    // Connect to ArangoDB
+    connParams := &arangomanager.ConnectParams{
+        User:     "root",
+        Pass:     "password",
+        Database: "mydb",
+        Host:     "localhost",
+        Port:     8529,
+        Istls:    false,
+    }
+    
+    // Create session and database connection
+    session, db, err := arangomanager.NewSessionDb(connParams)
+    if err != nil {
+        log.Fatalf("failed to connect: %s", err)
+    }
+    
+    // Execute a query
+    query := "FOR u IN users FILTER u.name == @name RETURN u"
+    bindVars := map[string]interface{}{
+        "name": "John",
+    }
+    
+    result, err := db.GetRow(query, bindVars)
+    if err != nil {
+        log.Fatalf("query failed: %s", err)
+    }
+    
+    if !result.IsEmpty() {
+        var user struct {
+            Name  string `json:"name"`
+            Email string `json:"email"`
+        }
+        if err := result.Read(&user); err != nil {
+            log.Fatalf("failed to read result: %s", err)
+        }
+        fmt.Printf("User: %s, Email: %s\n", user.Name, user.Email)
+    }
+}
+```
+
+## Main Components
+
+### Session
+
+The `Session` type manages the connection to the ArangoDB server:
+
+```go
+// Create a new session
+session, err := arangomanager.Connect(host, user, password, port, isTLS)
+
+// Get a database instance
+db, err := session.DB("myDatabase")
+
+// Create a new database
+err := session.CreateDB("newDatabase", nil)
+```
+
+### Database
+
+The `Database` type provides methods for interacting with an ArangoDB database:
+
+```go
+// Execute a query returning multiple rows
+rs, err := db.SearchRows(query, bindVars)
+
+// Execute a query returning a single row
+row, err := db.GetRow(query, bindVars)
+
+// Count results from a query
+count, err := db.CountWithParams(query, bindVars)
+
+// Execute a modification query
+err := db.Do(query, bindVars)
+
+// Create a collection
+coll, err := db.CreateCollection("myCollection", nil)
+
+// Find or create a collection
+coll, err := db.FindOrCreateCollection("myCollection", nil)
+
+// Create indices
+idx, created, err := db.EnsureHashIndex("myCollection", []string{"field1"}, opts)
+```
+
+### ResultSet
+
+The `Resultset` type handles query results with multiple rows:
+
+```go
+rs, err := db.SearchRows(query, bindVars)
+if err != nil {
+    // handle error
+}
+defer rs.Close()
+
+// Check if result is empty
+if rs.IsEmpty() {
+    // handle empty result
+}
+
+// Iterate through results
+for rs.Scan() {
+    var item MyType
+    if err := rs.Read(&item); err != nil {
+        // handle error
+    }
+    // process item
+}
+```
+
+### Result
+
+The `Result` type handles query results with a single row:
+
+```go
+res, err := db.GetRow(query, bindVars)
+if err != nil {
+    // handle error
+}
+
+// Check if result is empty
+if res.IsEmpty() {
+    // handle empty result
+}
+
+// Read data into struct
+var item MyType
+if err := res.Read(&item); err != nil {
+    // handle error
+}
+```
+
+## Testing
+
+For testing with ArangoDB, this library provides a `testarango` package to help
+set up temporary test databases.
+
+## Advanced Usage
+
+See the [GoDoc](https://pkg.go.dev/github.com/dictyBase/arangomanager) for full API documentation.
+
+## License
+
+BSD-2-Clause
