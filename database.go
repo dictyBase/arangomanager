@@ -4,15 +4,77 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"time"
 
 	driver "github.com/arangodb/go-driver"
 )
 
 const tranSize = 12
 
+// TransactionOptions represents options for transaction operations
+type TransactionOptions struct {
+	// ReadCollections is a list of collections that will be read during the transaction
+	ReadCollections []string
+	// WriteCollections is a list of collections that will be written to during the transaction
+	WriteCollections []string
+	// ExclusiveCollections is a list of collections that will be exclusively locked during the transaction
+	ExclusiveCollections []string
+	// WaitForSync if set to true, will force the transaction to write all data to disk before returning
+	WaitForSync bool
+	// AllowImplicit if set to true, allows reading from undeclared collections (only for Transaction)
+	AllowImplicit bool
+	// LockTimeout the timeout for waiting on collection locks (in seconds)
+	LockTimeout int
+	// MaxTransactionSize the maximum size of the transaction in bytes
+	MaxTransactionSize int
+}
+
 // Database struct.
 type Database struct {
 	dbh driver.Database
+}
+
+// DefaultTransactionOptions returns default options for transactions
+func DefaultTransactionOptions() *TransactionOptions {
+	return &TransactionOptions{
+		MaxTransactionSize: int(math.Pow10(tranSize)),
+	}
+}
+
+func (d *Database) BeginTransaction(
+	ctx context.Context,
+	opts *TransactionOptions,
+) (*TransactionHandler, error) {
+	if opts == nil {
+		opts = DefaultTransactionOptions()
+	}
+
+	// Create transaction options
+	beginOpts := &driver.BeginTransactionOptions{
+		MaxTransactionSize: uint64(opts.MaxTransactionSize),
+	}
+	beginOpts.WaitForSync = opts.WaitForSync
+	if opts.LockTimeout > 0 {
+		beginOpts.LockTimeout = time.Duration(opts.LockTimeout) * time.Second
+	}
+	// Begin transaction
+	txID, err := d.dbh.BeginTransaction(
+		ctx, driver.TransactionCollections{
+			Read:      opts.ReadCollections,
+			Write:     opts.WriteCollections,
+			Exclusive: opts.ExclusiveCollections,
+		}, beginOpts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	// Create transaction context
+	txCtx := driver.WithTransactionID(ctx, txID)
+	return &TransactionHandler{
+		db:       d,
+		id:       txID,
+		ctx:      txCtx,
+		canceled: false,
+	}, nil
 }
 
 // Handler returns the raw arangodb database handler.
