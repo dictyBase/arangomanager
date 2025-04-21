@@ -17,6 +17,7 @@ A Go library providing utilities and abstractions for working with [ArangoDB](ht
   - [Database](#database)
   - [ResultSet](#resultset)
   - [Result](#result)
+  - [Transaction](#transaction)
 - [Testing with TestArango](#testing-with-testarango)
 - [Query Package](#query-package)
 - [Collection Package](#collection-package)
@@ -32,6 +33,7 @@ A Go library providing utilities and abstractions for working with [ArangoDB](ht
 - Collection operations (create, find, truncate)
 - Query execution with support for parameters
 - Result set handling
+- Transaction support with ACID guarantees
 - Index management (geo, hash, persistent, skiplist)
 - Graph operations
 - User management with access control
@@ -48,8 +50,10 @@ go get github.com/dictyBase/arangomanager
 package main
 
 import (
+    "context"
     "fmt"
     "log"
+    "time"
 
     "github.com/dictyBase/arangomanager"
 )
@@ -91,6 +95,32 @@ func main() {
             log.Fatalf("failed to read result: %s", err)
         }
         fmt.Printf("User: %s, Email: %s\n", user.Name, user.Email)
+    }
+    
+    // Execute operations in a transaction for ACID compliance
+    txOptions := &arangomanager.TransactionOptions{
+        WriteCollections: []string{"users"},
+    }
+    tx, err := db.BeginTransaction(context.Background(), txOptions)
+    if err != nil {
+        log.Fatalf("failed to begin transaction: %s", err)
+    }
+    
+    // Execute a transaction operation
+    updateQuery := "UPDATE { _key: @key } WITH { lastLogin: @time } IN users"
+    txBindVars := map[string]interface{}{
+        "key": "user123",
+        "time": time.Now(),
+    }
+    
+    if err := tx.Do(updateQuery, txBindVars); err != nil {
+        tx.Abort()
+        log.Fatalf("transaction operation failed: %s", err)
+    }
+    
+    // Commit the transaction
+    if err := tx.Commit(); err != nil {
+        log.Fatalf("failed to commit transaction: %s", err)
     }
 }
 ```
@@ -137,6 +167,13 @@ coll, err := db.FindOrCreateCollection("myCollection", nil)
 
 // Create indices
 idx, created, err := db.EnsureHashIndex("myCollection", []string{"field1"}, opts)
+
+// Begin a transaction
+txOptions := &arangomanager.TransactionOptions{
+    ReadCollections:  []string{"users"},
+    WriteCollections: []string{"orders"},
+}
+tx, err := db.BeginTransaction(context.Background(), txOptions)
 ```
 
 ### ResultSet
@@ -186,6 +223,60 @@ if err := res.Read(&item); err != nil {
     // handle error
 }
 ```
+
+### Transaction
+
+The `TransactionHandler` type provides methods for working with ArangoDB transactions for ACID-compliant operations:
+
+```go
+// Configure transaction options
+txOptions := &arangomanager.TransactionOptions{
+    ReadCollections:  []string{"users"},
+    WriteCollections: []string{"orders"},
+}
+
+// Begin a transaction
+tx, err := db.BeginTransaction(context.Background(), txOptions)
+if err != nil {
+    // handle error
+}
+
+// Execute a write operation within the transaction
+writeQuery := "INSERT { username: @username, created_at: @timestamp } INTO users"
+bindVars := map[string]interface{}{
+    "username":  "johndoe",
+    "timestamp": time.Now(),
+}
+if err := tx.Do(writeQuery, bindVars); err != nil {
+    tx.Abort() // abort on error
+    // handle error
+}
+
+// Execute a query and get results within the transaction
+readQuery := "FOR o IN orders FILTER o.user_id == @user_id RETURN o"
+readBindVars := map[string]interface{}{"user_id": 123}
+result, err := tx.DoRun(readQuery, readBindVars)
+if err != nil {
+    tx.Abort() // abort on error
+    // handle error
+}
+
+// Process results within the transaction context
+// ...
+
+// Commit the transaction when done
+if err := tx.Commit(); err != nil {
+    // handle commit error
+}
+```
+
+Transaction Features:
+
+- ACID-compliant transactions (Atomicity, Consistency, Isolation, Durability)
+- Access to transaction ID and status information
+- Transaction-bound query execution
+- Automatic transaction context handling
+- Explicit transaction commit and abort operations
 
 ## Testing with TestArango
 
