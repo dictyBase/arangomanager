@@ -16,6 +16,7 @@ import (
 	"time"
 
 	driver "github.com/arangodb/go-driver"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -56,6 +57,33 @@ const (
 	minLen = 10
 	maxLen = 15
 )
+
+// DocParams defines parameters for document operations
+type DocParams struct {
+	T         *testing.T
+	TX        *TransactionHandler
+	Coll      driver.Collection
+	FirstName string
+	LastName  string
+}
+
+// TxParams defines parameters for creating a test transaction
+type TxParams struct {
+	T        *testing.T
+	DB       *Database
+	Coll     driver.Collection
+	ReadOnly bool
+}
+
+// DocExistsParams defines parameters for checking document existence
+type DocExistsParams struct {
+	T           *testing.T
+	DB          *Database
+	Coll        driver.Collection
+	FirstName   string
+	LastName    string
+	ShouldExist bool
+}
 
 func randomIntInRange(min, max int) (int, error) {
 	if min >= max {
@@ -292,4 +320,118 @@ func loadTestData(coll driver.Collection) error {
 	}
 
 	return nil
+}
+
+// setupTestTx sets up the test environment and returns database and collection objects
+func setupTestTx(t *testing.T) (*Database, driver.Collection, func()) {
+	t.Helper()
+	// Setup test environment
+	ta, err := newTestArangoFromEnv(true)
+	if err != nil {
+		t.Fatalf("failed to create test database: %s", err)
+	}
+
+	// Create cleanup function
+	cleanup := func() {
+		// Clean up the database
+		dbh, _ := ta.Session.client.Database(context.Background(), ta.Database)
+		if dbh != nil {
+			if err := dbh.Remove(context.Background()); err != nil {
+				t.Logf("failed to drop test database: %s", err)
+			}
+		}
+	}
+
+	db, err := ta.Session.DB(ta.Database)
+	if err != nil {
+		cleanup()
+		t.Fatalf("failed to get database: %s", err)
+	}
+
+	// Create a test collection
+	coll := setup(t, db)
+
+	return db, coll, cleanup
+}
+
+// beginTestTransaction creates a transaction with default options for testing
+func beginTestTransaction(params TxParams) *TransactionHandler {
+	params.T.Helper()
+
+	opts := &TransactionOptions{}
+	if params.ReadOnly {
+		opts.ReadCollections = []string{params.Coll.Name()}
+	} else {
+		opts.WriteCollections = []string{params.Coll.Name()}
+	}
+
+	tx, err := params.DB.BeginTransaction(context.Background(), opts)
+	if err != nil {
+		params.T.Fatalf("failed to begin transaction: %s", err)
+	}
+
+	return tx
+}
+
+// assertTxCanceled checks if a transaction is canceled as expected
+func assertTxCanceled(
+	t *testing.T,
+	tx *TransactionHandler,
+	expectedCanceled bool,
+) {
+	t.Helper()
+	assert := require.New(t)
+	assert.Equal(expectedCanceled, tx.canceled,
+		"Transaction canceled state mismatch, expected: %v, got: %v",
+		expectedCanceled, tx.canceled)
+}
+
+// insertTestDocument inserts a test document using the provided transaction
+func insertTestDocument(params DocParams) {
+	params.T.Helper()
+	assert := require.New(params.T)
+
+	query := fmt.Sprintf(userIns, params.Coll.Name())
+	bindVars := map[string]interface{}{
+		"first":  params.FirstName,
+		"last":   params.LastName,
+		"gender": "male",
+		"region": "test",
+		"city":   "TestCity",
+		"state":  "TestState",
+		"zip":    "12345",
+	}
+
+	err := params.TX.Do(query, bindVars)
+	assert.NoError(err)
+}
+
+// assertDocumentExists checks if a document exists in the database
+func assertDocumentExists(params DocExistsParams) {
+	params.T.Helper()
+	assert := require.New(params.T)
+
+	result, err := params.DB.GetRow(
+		fmt.Sprintf(
+			"FOR d IN %s FILTER d.name.first == @first AND d.name.last == @last RETURN d",
+			params.Coll.Name(),
+		),
+		map[string]interface{}{
+			"first": params.FirstName,
+			"last":  params.LastName,
+		},
+	)
+	assert.NoError(err)
+
+	if params.ShouldExist {
+		assert.False(
+			result.IsEmpty(),
+			"Document should exist but was not found: %s %s",
+			params.FirstName,
+			params.LastName,
+		)
+	} else {
+		assert.True(result.IsEmpty(),
+			"Document should not exist but was found: %s %s", params.FirstName, params.LastName)
+	}
 }
