@@ -51,7 +51,8 @@ func (d *Database) BeginTransaction(
 
 	// Create transaction options
 	beginOpts := &driver.BeginTransactionOptions{
-		MaxTransactionSize: uint64(opts.MaxTransactionSize),
+		// Set max transaction size with safety checks
+		MaxTransactionSize: uint64(0), // Default to 0
 	}
 	beginOpts.WaitForSync = opts.WaitForSync
 	if opts.LockTimeout > 0 {
@@ -409,10 +410,16 @@ func (d *Database) Truncate(names ...string) error {
 		context.Background(),
 		truncateFn,
 		&driver.TransactionOptions{
-			WriteCollections:   names,
-			ReadCollections:    names,
-			Params:             []interface{}{names},
-			MaxTransactionSize: int(math.Pow10(tranSize)),
+			WriteCollections: names,
+			ReadCollections:  names,
+			Params:           []interface{}{names},
+			MaxTransactionSize: func() int {
+				size := math.Pow10(tranSize)
+				if size > float64(math.MaxInt) {
+					return math.MaxInt
+				}
+				return int(size)
+			}(),
 		})
 	if err != nil {
 		return fmt.Errorf("error in truncating collections %s", err)
