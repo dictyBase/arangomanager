@@ -10,40 +10,53 @@
 		},
 		"repomix": {
 			"type": "stdio",
-			"command": "repomix",
+			"command": "bunx",
 			"args": [
+				"repomix@0.3.1",
 				"--mcp"
+			]
+		},
+		"memory": {
+			"type": "stdio",
+			"command": "bunx",
+			"args": [
+				"@modelcontextprotocol/server-memory"
+			]
+		},
+		"mermaid": {
+			"type": "stdio",
+			"command": "bunx",
+			"args": [
+				"@rtuin/mcp-mermaid-validator"
+			]
+		},
+		"context7": {
+			"command": "bunx",
+			"args": [
+				"@upstash/context7-mcp@latest"
+			]
+		},
+		"fetch": {
+			"command": "uvx",
+			"args": [
+				"mcp-server-fetch"
 			]
 		},
 		"github": {
 			"type": "stdio",
 			"command": "github-mcp-server",
-			"args": ["stdio"]
-		},
-		"fetcher": {
-			"type": "stdio",
-			"command": "fetcher-mcp",
-			"args": []
-		},
-		"memory": {
-			"type": "stdio",
-			"command": "mcp-server-memory",
-			"args": []
+			"args": [
+				"stdio"
+			]
 		},
 		"git": {
 			"type": "stdio",
-			"command": "python",
+			"command": "uvx",
 			"args": [
-				"-m",
-				"mcp_server_git",
+				"mcp-server-git",
 				"--repository",
 				"/Users/sba964/Projects/devenv/golang/arangomanager"
 			]
-		},
-		"mermaid": {
-			"type": "stdio",
-			"command": "mcp-mermaid-validator",
-			"args": []
 		}
 	}
 }
