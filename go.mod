@@ -7,12 +7,12 @@ require (
 	github.com/go-playground/validator/v10 v10.26.0
 	github.com/jinzhu/now v1.1.5
 	github.com/stretchr/testify v1.10.0
-	github.com/urfave/cli v1.22.16
+	github.com/urfave/cli v1.22.17
 )
 
 require (
 	github.com/arangodb/go-velocypack v0.0.0-20200318135517-5af53c29c67e // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
