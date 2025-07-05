@@ -4,7 +4,7 @@ require (
 	github.com/arangodb/go-driver v1.6.6
 	github.com/emirpasic/gods v1.18.1
 	github.com/fatih/structs v1.1.0
-	github.com/go-playground/validator/v10 v10.26.0
+	github.com/go-playground/validator/v10 v10.27.0
 	github.com/jinzhu/now v1.1.5
 	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli v1.22.17
