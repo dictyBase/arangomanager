@@ -37,7 +37,7 @@ func (r *Resultset) Scan() bool {
 
 // Read reads the row of data to interface i.
 // Returns an error if the resultset is empty.
-func (r *Resultset) Read(iface interface{}) error {
+func (r *Resultset) Read(iface any) error {
 	if r.empty {
 		return fmt.Errorf("cannot read from empty resultset")
 	}

@@ -281,7 +281,7 @@ func TestSearchRowsWithParams(t *testing.T) {
 	defer teardown(t, conn)
 	frs, err := adbh.SearchRows(
 		genderQ,
-		map[string]interface{}{
+		map[string]any{
 			"@collection": conn.Name(),
 			"gender":      "female",
 		},
@@ -289,7 +289,7 @@ func TestSearchRowsWithParams(t *testing.T) {
 	testSearchRs(t, frs, err)
 	wrs, err := adbh.SearchRows(
 		genderQ,
-		map[string]interface{}{
+		map[string]any{
 			"@collection": conn.Name(),
 			"gender":      "wakanda",
 		},
@@ -313,7 +313,7 @@ func TestDo(t *testing.T) {
 	defer teardown(t, c)
 	err := adbh.Do(
 		fmt.Sprintf(userIns, c.Name()),
-		map[string]interface{}{
+		map[string]any{
 			"first":  "Chitkini",
 			"last":   "Dey",
 			"gender": "male",
@@ -337,7 +337,7 @@ func TestGetRow(t *testing.T) {
 	defer teardown(t, conn)
 	row, err := adbh.GetRow(
 		userQ,
-		map[string]interface{}{
+		map[string]any{
 			"@collection": conn.Name(),
 			"first":       "Mickie",
 			"last":        "Menchaca",
@@ -350,7 +350,7 @@ func TestGetRow(t *testing.T) {
 		err,
 	)
 	require.False(row.IsEmpty(), "expect result to be not empty")
-	var u testUserDb
+	var u testUserDB
 	err = row.Read(&u)
 	require.NoError(err, "expect no error from reading the data")
 	require.Equal(u.Gender, "female", "expect gender to be female")
@@ -362,7 +362,7 @@ func TestGetRow(t *testing.T) {
 	require.Equal(u.Contact.Region, "732", "should match region 732")
 	erow, err := adbh.GetRow(
 		userQ,
-		map[string]interface{}{
+		map[string]any{
 			"@collection": conn.Name(),
 			"first":       "Pantu",
 			"last":        "Boka",
@@ -408,7 +408,7 @@ func TestTruncate(t *testing.T) {
 func testGenderCount(args *genderCountParams) {
 	gcp, err := adbh.CountWithParams(
 		genderQ,
-		map[string]interface{}{
+		map[string]any{
 			"@collection": args.collection.Name(),
 			"gender":      args.gender,
 		},
@@ -428,9 +428,9 @@ func testGenderCount(args *genderCountParams) {
 }
 
 func testAllRows(rs *Resultset, require *require.Assertions, count int) {
-	for i := 0; i < count; i++ {
+	for range count {
 		require.True(rs.Scan(), "expect scanning of record")
-		var u testUserDb
+		var u testUserDB
 		err := rs.Read(&u)
 		require.NoError(err, "expect no error from reading the data")
 		require.Equal(u.Gender, "female", "expect gender to be female")

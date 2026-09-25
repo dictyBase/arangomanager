@@ -187,7 +187,7 @@ func TestTransactionDoRun(t *testing.T) {
 			"FOR d IN %s FILTER d.gender == @gender RETURN d",
 			coll.Name(),
 		)
-		bindVars := map[string]interface{}{"gender": "male"}
+		bindVars := map[string]any{"gender": "male"}
 
 		result, err := tx.DoRun(query, bindVars)
 		assert.NoError(err)

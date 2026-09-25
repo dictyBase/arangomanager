@@ -69,7 +69,7 @@ func (t *TransactionHandler) Status() (driver.TransactionStatusRecord, error) {
 // Do executes a query within the transaction.
 func (t *TransactionHandler) Do(
 	query string,
-	bindVars map[string]interface{},
+	bindVars map[string]any,
 ) error {
 	ctx := driver.WithSilent(t.ctx)
 	_, err := t.db.dbh.Query(ctx, query, bindVars)
@@ -84,7 +84,7 @@ func (t *TransactionHandler) Do(
 // result.
 func (t *TransactionHandler) DoRun(
 	query string,
-	bindVars map[string]interface{},
+	bindVars map[string]any,
 ) (*Result, error) {
 	if err := t.db.dbh.ValidateQuery(t.ctx, query); err != nil {
 		return &Result{

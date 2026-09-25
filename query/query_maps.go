@@ -1,7 +1,36 @@
 package query
 
+// AQL boolean logic keywords returned by getLogic.
+const (
+	logicAnd = "AND"
+	logicOr  = "OR"
+)
+
+// AQL operators used as keys in the filter operator maps.
+const (
+	opEqual         = "=="
+	opStrictEqual   = "==="
+	opNotEqual      = "!="
+	opStrictNotEq   = "!=="
+	opGreater       = ">"
+	opLess          = "<"
+	opGreaterEqual  = ">="
+	opLessEqual     = "<="
+	opMatch         = "=~"
+	opNotMatch      = "!~"
+	opDateEqual     = "$=="
+	opDateGreater   = "$>"
+	opDateLess      = "$<"
+	opDateGtEqual   = "$>="
+	opDateLsEqual   = "$<="
+	opArrayEqual    = "@=="
+	opArrayMatch    = "@=~"
+	opArrayNotMatch = "@!~"
+	opArrayNotEqual = "@!="
+)
+
 func getLogic(input string) string {
-	lmap := map[string]string{",": "OR", ";": "AND"}
+	lmap := map[string]string{",": logicOr, ";": logicAnd}
 
 	return lmap[input]
 }
@@ -11,24 +40,24 @@ func getLogic(input string) string {
 // and array operators (prefixed with @).
 func getOperatorMap() map[string]string {
 	return map[string]string{
-		"==":  "==",
-		"===": "==",
-		"!=":  "!=",
-		">":   ">",
-		"<":   "<",
-		">=":  ">=",
-		"<=":  "<=",
-		"=~":  "=~",
-		"!~":  "!~",
-		"$==": "==",
-		"$>":  ">",
-		"$<":  "<",
-		"$>=": ">=",
-		"$<=": "<=",
-		"@==": "==",
-		"@=~": "=~",
-		"@!~": "!~",
-		"@!=": "!=",
+		opEqual:         opEqual,
+		opStrictEqual:   opEqual,
+		opNotEqual:      opNotEqual,
+		opGreater:       opGreater,
+		opLess:          opLess,
+		opGreaterEqual:  opGreaterEqual,
+		opLessEqual:     opLessEqual,
+		opMatch:         opMatch,
+		opNotMatch:      opNotMatch,
+		opDateEqual:     opEqual,
+		opDateGreater:   opGreater,
+		opDateLess:      opLess,
+		opDateGtEqual:   opGreaterEqual,
+		opDateLsEqual:   opLessEqual,
+		opArrayEqual:    opEqual,
+		opArrayMatch:    opMatch,
+		opArrayNotMatch: opNotMatch,
+		opArrayNotEqual: opNotEqual,
 	}
 }
 
@@ -70,11 +99,11 @@ func hasArrayOperator(opt string) bool {
 // from standard operators. When these operators are used, the value is treated as a date.
 func getDateOperatorMap() map[string]string {
 	return map[string]string{
-		"$==": "==",
-		"$>":  ">",
-		"$<":  "<",
-		"$>=": ">=",
-		"$<=": "<=",
+		opDateEqual:   opEqual,
+		opDateGreater: opGreater,
+		opDateLess:    opLess,
+		opDateGtEqual: opGreaterEqual,
+		opDateLsEqual: opLessEqual,
 	}
 }
 
@@ -84,9 +113,9 @@ func getDateOperatorMap() map[string]string {
 // to be searched for within an array.
 func getArrayOperatorMap() map[string]string {
 	return map[string]string{
-		"@==": "==",
-		"@=~": "=~",
-		"@!~": "!~",
-		"@!=": "!=",
+		opArrayEqual:    opEqual,
+		opArrayMatch:    opMatch,
+		opArrayNotMatch: opNotMatch,
+		opArrayNotEqual: opNotEqual,
 	}
 }
