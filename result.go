@@ -20,7 +20,7 @@ func (r *Result) IsEmpty() bool {
 }
 
 // Read read the row of data to i interface.
-func (r *Result) Read(iface interface{}) error {
+func (r *Result) Read(iface any) error {
 	meta, err := r.cursor.ReadDocument(context.TODO(), iface)
 	if err != nil {
 		return fmt.Errorf("error in reading document %s", err)

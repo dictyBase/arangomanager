@@ -14,7 +14,6 @@ import (
 
 const (
 	logicIdx         = 2
-	charSet          = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	filterStrLen     = 5
 	strSeedLen       = 10
 	arrQualMatchTmpl = `
@@ -74,11 +73,11 @@ func init() {
 // validateOperator is a custom validator to check if the operator is valid
 func validateOperator(fl validator.FieldLevel) bool {
 	validOperators := map[string]bool{
-		"==": true, "!=": true, "===": true, "!==": true,
-		"=~": true, "!~": true, ">": true, "<": true,
-		">=": true, "<=": true, "$==": true, "$>": true,
-		"$>=": true, "$<": true, "$<=": true, "@==": true,
-		"@!=": true, "@!~": true, "@=~": true,
+		opEqual: true, opNotEqual: true, opStrictEqual: true, opStrictNotEq: true,
+		opMatch: true, opNotMatch: true, opGreater: true, opLess: true,
+		opGreaterEqual: true, opLessEqual: true, opDateEqual: true, opDateGreater: true,
+		opDateGtEqual: true, opDateLess: true, opDateLsEqual: true, opArrayEqual: true,
+		opArrayNotEqual: true, opArrayNotMatch: true, opArrayMatch: true,
 	}
 
 	return validOperators[fl.Field().String()]
@@ -438,9 +437,9 @@ func addLogic(stmts *arraylist.List, flt *Filter) {
 	}
 	logic := getLogic(flt.Logic)
 	switch logic {
-	case "OR":
+	case logicOr:
 		addStartingParen(stmts, currSize)
-	case "AND":
+	case logicAnd:
 		addClosingParen(stmts, currSize)
 	}
 	stmts.Add(fmt.Sprintf("\n %s ", logic))
@@ -459,7 +458,7 @@ func addClosingParen(stmts *arraylist.List, currSize int) {
 	}
 	elem, _ := stmts.Get(currSize - logicIdx)
 	if val, ok := elem.(string); ok {
-		if strings.TrimSpace(val) == "OR" {
+		if strings.TrimSpace(val) == logicOr {
 			stmts.Add(" ) ")
 		}
 	}
@@ -518,11 +517,11 @@ func toString(l *arraylist.List) string {
 // check if operator is used for a string.
 func addQuoteToStrings(ops, value string) string {
 	stringOperators := map[string]int{
-		"==":  1,
-		"===": 1,
-		"!=":  1,
-		"=~":  1,
-		"!~":  1,
+		opEqual:       1,
+		opStrictEqual: 1,
+		opNotEqual:    1,
+		opMatch:       1,
+		opNotMatch:    1,
 	}
 	if _, ok := stringOperators[ops]; ok {
 		return fmt.Sprintf("'%s'", value)

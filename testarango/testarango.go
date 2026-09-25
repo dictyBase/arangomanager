@@ -66,13 +66,13 @@ func NewTestArangoFromEnv(isCreate bool) (*TestArango, error) {
 	}
 	if len(os.Getenv("ARANGO_PORT")) > 0 {
 		aport, _ := strconv.Atoi(os.Getenv("ARANGO_PORT"))
-		tra.ConnectParams.Port = aport
+		tra.Port = aport
 	}
 	sess, err := arangomanager.Connect(
-		tra.ConnectParams.Host,
-		tra.ConnectParams.User,
-		tra.ConnectParams.Pass,
-		tra.ConnectParams.Port,
+		tra.Host,
+		tra.User,
+		tra.Pass,
+		tra.Port,
 		false,
 	)
 	if err != nil {
@@ -105,10 +105,10 @@ func NewTestArango(
 		Port: port,
 	}
 	sess, err := arangomanager.Connect(
-		tra.ConnectParams.Host,
-		tra.ConnectParams.User,
-		tra.ConnectParams.Pass,
-		tra.ConnectParams.Port,
+		tra.Host,
+		tra.User,
+		tra.Pass,
+		tra.Port,
 		false,
 	)
 	if err != nil {
@@ -129,6 +129,8 @@ func NewTestArango(
 }
 
 // CreateTestDb creates a test database of given name.
+//
+//nolint:staticcheck // ST1003: name kept as-is, it is exported public API.
 func (ta *TestArango) CreateTestDb(
 	name string,
 	opt *driver.CreateDatabaseOptions,

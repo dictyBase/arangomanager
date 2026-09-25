@@ -87,7 +87,7 @@ func (d *Database) Handler() driver.Database {
 // multiple rows of result.
 func (d *Database) SearchRows(
 	query string,
-	bindVars map[string]interface{},
+	bindVars map[string]any,
 ) (*Resultset, error) {
 	// validate
 	if err := d.dbh.ValidateQuery(context.Background(), query); err != nil {
@@ -124,7 +124,7 @@ func (d *Database) Search(query string) (*Resultset, error) {
 // return count of result.
 func (d *Database) CountWithParams(
 	query string,
-	bindVars map[string]interface{},
+	bindVars map[string]any,
 ) (int64, error) {
 	// validate
 	if err := d.dbh.ValidateQuery(context.Background(), query); err != nil {
@@ -155,7 +155,7 @@ func (d *Database) Exec(query string) error {
 
 // Do is to run data modification query with bind parameters that is not
 // expected to return any result.
-func (d *Database) Do(query string, bindVars map[string]interface{}) error {
+func (d *Database) Do(query string, bindVars map[string]any) error {
 	ctx := driver.WithSilent(context.Background())
 	_, err := d.dbh.Query(ctx, query, bindVars)
 	if err != nil {
@@ -169,7 +169,7 @@ func (d *Database) Do(query string, bindVars map[string]interface{}) error {
 // single row of result.
 func (d *Database) GetRow(
 	query string,
-	bindVars map[string]interface{},
+	bindVars map[string]any,
 ) (*Result, error) {
 	if err := d.dbh.ValidateQuery(context.Background(), query); err != nil {
 		return &Result{
@@ -188,7 +188,7 @@ func (d *Database) GetRow(
 // that is expected to return a result. It is an alias for GetRow.
 func (d *Database) DoRun(
 	query string,
-	bindVars map[string]interface{},
+	bindVars map[string]any,
 ) (*Result, error) {
 	return d.GetRow(query, bindVars)
 }
@@ -412,7 +412,7 @@ func (d *Database) Truncate(names ...string) error {
 		&driver.TransactionOptions{
 			WriteCollections: names,
 			ReadCollections:  names,
-			Params:           []interface{}{names},
+			Params:           []any{names},
 			MaxTransactionSize: func() int {
 				size := math.Pow10(tranSize)
 				if size > float64(math.MaxInt) {

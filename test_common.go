@@ -58,6 +58,15 @@ const (
 	maxLen = 15
 )
 
+// Bind parameter names shared by the test queries and documents.
+const (
+	bindFirstName = "first"
+	bindLastName  = "last"
+	bindGender    = "gender"
+	// testGenderMale is the gender value used by the test fixtures.
+	testGenderMale = "male"
+)
+
 // DocParams defines parameters for document operations
 type DocParams struct {
 	T         *testing.T
@@ -87,7 +96,7 @@ type DocExistsParams struct {
 
 func randomIntInRange(min, max int) (int, error) {
 	if min >= max {
-		return 0, fmt.Errorf("Invalid range")
+		return 0, fmt.Errorf("invalid range")
 	}
 	// Calculate the number of possible values within the range
 	possibleValues := big.NewInt(int64(max - min))
@@ -113,7 +122,7 @@ func FixedLenRandomString(length int) string {
 	alphanum := []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	byt := make([]byte, 0)
 	alen := len(alphanum)
-	for i := 0; i < length; i++ {
+	for range length {
 		pos, _ := RandomInt(alen)
 		byt = append(byt, alphanum[pos])
 	}
@@ -127,7 +136,7 @@ func RandomString(min, max int) string {
 	size, _ := randomIntInRange(min, max)
 	byt := make([]byte, size)
 	alen := len(alphanum)
-	for i := 0; i < size; i++ {
+	for i := range size {
 		pos, _ := RandomInt(alen)
 		byt[i] = alphanum[pos]
 	}
@@ -140,7 +149,7 @@ type testArango struct {
 	*Session
 }
 
-type testUserDb struct {
+type testUserDB struct {
 	driver.DocumentMeta
 	Birthday *time.Time `json:"birthday"`
 	Contact  struct {
@@ -251,13 +260,13 @@ func newTestArangoFromEnv(isCreate bool) (*testArango, error) {
 	}
 	if len(os.Getenv("ARANGO_PORT")) > 0 {
 		aport, _ := strconv.Atoi(os.Getenv("ARANGO_PORT"))
-		tra.ConnectParams.Port = aport
+		tra.Port = aport
 	}
 	sess, err := Connect(
-		tra.ConnectParams.Host,
-		tra.ConnectParams.User,
-		tra.ConnectParams.Pass,
-		tra.ConnectParams.Port,
+		tra.Host,
+		tra.User,
+		tra.Pass,
+		tra.Port,
 		false,
 	)
 	if err != nil {
@@ -334,7 +343,7 @@ func setupTestTx(t *testing.T) (*Database, driver.Collection, func()) {
 	// Create cleanup function
 	cleanup := func() {
 		// Clean up the database
-		dbh, _ := ta.Session.client.Database(context.Background(), ta.Database)
+		dbh, _ := ta.client.Database(context.Background(), ta.Database)
 		if dbh != nil {
 			if err := dbh.Remove(context.Background()); err != nil {
 				t.Logf("failed to drop test database: %s", err)
@@ -342,7 +351,7 @@ func setupTestTx(t *testing.T) (*Database, driver.Collection, func()) {
 		}
 	}
 
-	db, err := ta.Session.DB(ta.Database)
+	db, err := ta.DB(ta.Database)
 	if err != nil {
 		cleanup()
 		t.Fatalf("failed to get database: %s", err)
@@ -392,14 +401,14 @@ func insertTestDocument(params DocParams) {
 	assert := require.New(params.T)
 
 	query := fmt.Sprintf(userIns, params.Coll.Name())
-	bindVars := map[string]interface{}{
-		"first":  params.FirstName,
-		"last":   params.LastName,
-		"gender": "male",
-		"region": "test",
-		"city":   "TestCity",
-		"state":  "TestState",
-		"zip":    "12345",
+	bindVars := map[string]any{
+		bindFirstName: params.FirstName,
+		bindLastName:  params.LastName,
+		bindGender:    testGenderMale,
+		"region":      "test",
+		"city":        "TestCity",
+		"state":       "TestState",
+		"zip":         "12345",
 	}
 
 	err := params.TX.Do(query, bindVars)
@@ -416,9 +425,9 @@ func assertDocumentExists(params DocExistsParams) {
 			"FOR d IN %s FILTER d.name.first == @first AND d.name.last == @last RETURN d",
 			params.Coll.Name(),
 		),
-		map[string]interface{}{
-			"first": params.FirstName,
-			"last":  params.LastName,
+		map[string]any{
+			bindFirstName: params.FirstName,
+			bindLastName:  params.LastName,
 		},
 	)
 	assert.NoError(err)

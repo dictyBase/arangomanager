@@ -62,6 +62,8 @@ func Connect(
 
 // NewSessionDb connects to arangodb and returns a new session
 // and database instances.
+//
+//nolint:staticcheck // ST1003: name kept as-is, it is exported public API.
 func NewSessionDb(connP *ConnectParams) (*Session, *Database, error) {
 	var sess *Session
 	var dbr *Database
