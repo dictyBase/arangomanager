@@ -1,3 +1,4 @@
+// Package flag provides command-line flags for ArangoDB connection parameters.
 package flag
 
 import (
@@ -5,7 +6,7 @@ import (
 )
 
 /*
-The ArangoFlags function returns a []cli.Flag containing the following flags:
+ArangoFlags returns a []cli.Flag containing the following flags:
 
   - arangodb-pass: The password for the ArangoDB database.
 

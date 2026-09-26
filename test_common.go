@@ -109,7 +109,7 @@ func randomIntInRange(min, max int) (int, error) {
 	return min + int(randomValue.Int64()), nil
 }
 
-// Generate a random number using crypto/rand.
+// RandomInt generates a random number using crypto/rand.
 func RandomInt(num int) (int, error) {
 	randomValue, err := rand.Int(rand.Reader, big.NewInt(int64(num)))
 	if err != nil {
@@ -118,6 +118,7 @@ func RandomInt(num int) (int, error) {
 	return int(randomValue.Int64()), nil
 }
 
+// FixedLenRandomString generates a random string of a fixed given length.
 func FixedLenRandomString(length int) string {
 	alphanum := []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	byt := make([]byte, 0)
@@ -130,7 +131,7 @@ func FixedLenRandomString(length int) string {
 	return string(byt)
 }
 
-// Generates a random string between a range(min and max) of length.
+// RandomString generates a random string between a range(min and max) of length.
 func RandomString(min, max int) string {
 	alphanum := []byte("abcdefghijklmnopqrstuvwxyz")
 	size, _ := randomIntInRange(min, max)

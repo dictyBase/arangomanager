@@ -1,3 +1,4 @@
+// Package arangomanager provides a Go driver for ArangoDB operations (database, collections, transactions).
 package arangomanager
 
 import (
@@ -41,6 +42,7 @@ func DefaultTransactionOptions() *TransactionOptions {
 	}
 }
 
+// BeginTransaction starts a new transaction with the given context and options.
 func (d *Database) BeginTransaction(
 	ctx context.Context,
 	opts *TransactionOptions,

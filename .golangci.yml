@@ -40,10 +40,10 @@ linters:
         - name: var-naming
           arguments:
             - - ID
+        - name: exported
+        - name: package-comments
     staticcheck:
-      checks:
-        - all
-        - -SA5001
+      checks: [all, -SA5001]
   exclusions:
     generated: lax
     rules:
@@ -51,7 +51,6 @@ linters:
         linters:
           - goconst
     presets:
-      - comments
       - common-false-positives
       - legacy
       - std-error-handling

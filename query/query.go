@@ -1,3 +1,4 @@
+// Package query provides functionalities for constructing and executing AQL queries.
 package query
 
 import (

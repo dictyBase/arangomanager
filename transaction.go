@@ -7,7 +7,7 @@ import (
 	driver "github.com/arangodb/go-driver"
 )
 
-// TransactionHandler represents a transaction with begin/commit/abort capabilities
+// TransactionHandler represents a transaction with begin/commit/abort capabilities.
 type TransactionHandler struct {
 	db       *Database
 	id       driver.TransactionID
@@ -15,17 +15,17 @@ type TransactionHandler struct {
 	canceled bool
 }
 
-// Context returns the transaction context which should be used for all operations within the transaction
+// Context returns the transaction context which should be used for all operations within the transaction.
 func (t *TransactionHandler) Context() context.Context {
 	return t.ctx
 }
 
-// ID returns the transaction ID
+// ID returns the transaction ID.
 func (t *TransactionHandler) ID() driver.TransactionID {
 	return t.id
 }
 
-// Commit commits the transaction
+// Commit commits the transaction.
 func (t *TransactionHandler) Commit() error {
 	if t.canceled {
 		return fmt.Errorf("cannot commit a canceled transaction")
@@ -39,7 +39,7 @@ func (t *TransactionHandler) Commit() error {
 	return nil
 }
 
-// Abort aborts the transaction
+// Abort aborts the transaction.
 func (t *TransactionHandler) Abort() error {
 	if t.canceled {
 		return fmt.Errorf("transaction already canceled")
@@ -53,7 +53,7 @@ func (t *TransactionHandler) Abort() error {
 	return nil
 }
 
-// Status retrieves the current status of the transaction
+// Status retrieves the current status of the transaction.
 func (t *TransactionHandler) Status() (driver.TransactionStatusRecord, error) {
 	status, err := t.db.dbh.TransactionStatus(context.Background(), t.id)
 	if err != nil {
@@ -80,7 +80,7 @@ func (t *TransactionHandler) Do(
 	return nil
 }
 
-// DoRunTransaction executes a query within a transaction that returns a
+// DoRun executes a query within a transaction that returns a
 // result.
 func (t *TransactionHandler) DoRun(
 	query string,
